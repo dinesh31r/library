@@ -1,0 +1,27 @@
+@model LibrarianDashboardViewModel
+@{ ViewData["Title"] = "Librarian Dashboard"; }
+
+<div class="stats-grid">
+    <div class="stat-card primary"><div class="stat-icon">📖</div><div class="stat-info"><div class="stat-value">@Model.TotalBooks</div><div class="stat-label">Total Books</div></div></div>
+    <div class="stat-card success"><div class="stat-icon">✅</div><div class="stat-info"><div class="stat-value">@Model.AvailableCopies</div><div class="stat-label">Available</div></div></div>
+    <div class="stat-card accent"><div class="stat-icon">📤</div><div class="stat-info"><div class="stat-value">@Model.IssuedBooks</div><div class="stat-label">Issued</div></div></div>
+    <div class="stat-card info"><div class="stat-icon">📅</div><div class="stat-info"><div class="stat-value">@Model.TodayIssues</div><div class="stat-label">Today's Issues</div></div></div>
+    <div class="stat-card info"><div class="stat-icon">📥</div><div class="stat-info"><div class="stat-value">@Model.TodayReturns</div><div class="stat-label">Today's Returns</div></div></div>
+    <div class="stat-card danger"><div class="stat-icon">⏰</div><div class="stat-info"><div class="stat-value">@Model.OverdueBooks</div><div class="stat-label">Overdue</div></div></div>
+    <div class="stat-card warning"><div class="stat-icon">🔖</div><div class="stat-info"><div class="stat-value">@Model.PendingReservations</div><div class="stat-label">Reservations</div></div></div>
+    <div class="stat-card danger"><div class="stat-icon">💰</div><div class="stat-info"><div class="stat-value">₹@Model.OutstandingFines.ToString("F0")</div><div class="stat-label">Pending Fines</div></div></div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h3>⚡ Quick Actions</h3></div>
+    <div class="card-body">
+        <div class="quick-actions">
+            <a href="@Url.Action("Issue", "Borrowings")" class="quick-action-btn"><div class="icon">📤</div><div class="label">Issue Book</div></a>
+            <a href="@Url.Action("Return", "Borrowings")" class="quick-action-btn"><div class="icon">📥</div><div class="label">Return Book</div></a>
+            <a href="@Url.Action("Create", "Books")" class="quick-action-btn"><div class="icon">➕</div><div class="label">Add Book</div></a>
+            <a href="@Url.Action("Index", "Books")" class="quick-action-btn"><div class="icon">🔍</div><div class="label">Search Books</div></a>
+            <a href="@Url.Action("Overdue", "Borrowings")" class="quick-action-btn"><div class="icon">⏰</div><div class="label">Overdue Books</div></a>
+            <a href="@Url.Action("Index", "Reservations")" class="quick-action-btn"><div class="icon">🔖</div><div class="label">Reservations</div></a>
+        </div>
+    </div>
+</div>

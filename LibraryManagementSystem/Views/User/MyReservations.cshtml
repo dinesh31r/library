@@ -1,0 +1,60 @@
+@model List<LibraryManagementSystem.Models.Reservation>
+@{ ViewData["Title"] = "My Reservations"; }
+
+<div class="page-header">
+    <h1>🔖 My Reservations</h1>
+</div>
+
+<div class="card">
+    @if (Model.Any())
+    {
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Book Title</th>
+                        <th>Author</th>
+                        <th>Reservation Date</th>
+                        <th>Queue Position</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model)
+                    {
+                        var badgeClass = r.Status switch {
+                            ReservationStatus.Ready => "badge-ready",
+                            ReservationStatus.Pending => "badge-pending",
+                            ReservationStatus.Fulfilled => "badge-fulfilled",
+                            _ => "badge-cancelled"
+                        };
+                        <tr>
+                            <td><strong>@r.Book?.Title</strong></td>
+                            <td class="text-muted">@r.Book?.Author?.Name</td>
+                            <td>@r.ReservationDate.ToString("MMM dd, yyyy")</td>
+                            <td><span class="badge badge-issued">#@r.QueuePosition</span></td>
+                            <td><span class="badge @badgeClass">@r.Status</span></td>
+                            <td>
+                                @if (r.Status == ReservationStatus.Pending || r.Status == ReservationStatus.Ready)
+                                {
+                                    <form asp-controller="User" asp-action="CancelReservation" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@r.ReservationId" />
+                                        <button type="submit" class="btn btn-sm btn-danger" data-confirm="Cancel this reservation?">Cancel</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="card-body">
+            <div class="empty-state"><div class="icon">🔖</div><p>You have no active reservations.</p></div>
+        </div>
+    }
+</div>

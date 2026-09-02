@@ -1,0 +1,35 @@
+@model IssueBookViewModel
+@{ ViewData["Title"] = "Issue Book"; }
+
+<div class="form-card" style="max-width:600px;">
+    <div class="card-header"><h3>📤 Issue Book</h3></div>
+    <div class="card-body">
+        <form asp-action="Issue" method="post">
+            @Html.AntiForgeryToken()
+            <div class="form-group" style="margin-bottom:18px;">
+                <label class="form-label">Search User <span class="required">*</span></label>
+                <div class="autocomplete-wrapper">
+                    <input type="text" id="user-search" class="form-control" placeholder="Search by name or email..." autocomplete="off" />
+                    <div id="user-results" class="autocomplete-results"></div>
+                </div>
+                <input type="hidden" id="UserId" name="UserId" asp-for="UserId" />
+                <span asp-validation-for="UserId" class="field-validation-error"></span>
+            </div>
+            <div class="form-group" style="margin-bottom:18px;">
+                <label class="form-label">Search Book Copy <span class="required">*</span></label>
+                <div class="autocomplete-wrapper">
+                    <input type="text" id="copy-search" class="form-control" placeholder="Search by title, accession #, or barcode..." autocomplete="off" />
+                    <div id="copy-results" class="autocomplete-results"></div>
+                </div>
+                <input type="hidden" id="BookCopyId" name="BookCopyId" asp-for="BookCopyId" />
+                <span asp-validation-for="BookCopyId" class="field-validation-error"></span>
+            </div>
+            <div class="form-actions">
+                <a href="@Url.Action("Index")" class="btn btn-outline">Cancel</a>
+                <button type="submit" class="btn btn-primary btn-lg">📤 Issue Book</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <script src="~/js/borrowing.js"></script> }

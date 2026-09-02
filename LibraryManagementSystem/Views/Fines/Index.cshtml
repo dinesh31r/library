@@ -1,0 +1,94 @@
+@model List<LibraryManagementSystem.Models.Fine>
+@{ ViewData["Title"] = "Fines Management"; }
+
+<div class="page-header">
+    <h1>💰 Fines Management</h1>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" asp-action="Index">
+            <div class="search-bar">
+                <select name="status" class="form-control" style="max-width:200px;" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    <option value="Pending" selected="@(ViewBag.Status == "Pending")">Pending</option>
+                    <option value="Paid" selected="@(ViewBag.Status == "Paid")">Paid</option>
+                    <option value="Waived" selected="@(ViewBag.Status == "Waived")">Waived</option>
+                </select>
+                <button type="submit" class="btn btn-primary">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    @if (Model.Any())
+    {
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Book</th>
+                        <th>Amount</th>
+                        <th>Reason</th>
+                        <th>Issued Date</th>
+                        <th>Paid Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var f in Model)
+                    {
+                        var badgeClass = f.Status == FineStatus.Paid ? "badge-paid" : f.Status == FineStatus.Waived ? "badge-waived" : "badge-overdue";
+                        <tr>
+                            <td><strong>@f.User?.FullName</strong></td>
+                            <td class="text-sm">@f.Borrowing?.BookCopy?.Book?.Title</td>
+                            <td><strong>₹@f.Amount.ToString("F2")</strong></td>
+                            <td class="text-xs text-muted">@f.Reason</td>
+                            <td class="text-sm">@f.IssuedDate.ToString("MMM dd, yyyy")</td>
+                            <td class="text-sm">@(f.PaidDate?.ToString("MMM dd, yyyy") ?? "—")</td>
+                            <td><span class="badge @badgeClass">@f.Status</span></td>
+                            <td class="actions">
+                                @if (f.Status == FineStatus.Pending)
+                                {
+                                    <form asp-action="RecordPayment" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="fineId" value="@f.FineId" />
+                                        <input type="hidden" name="paymentMethod" value="Cash" />
+                                        <button type="submit" class="btn btn-sm btn-success" data-confirm="Record cash payment of ₹@f.Amount?">Pay Cash</button>
+                                    </form>
+                                    @if (User.IsInRole("Admin"))
+                                    {
+                                        <form asp-action="Waive" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="fineId" value="@f.FineId" />
+                                            <button type="submit" class="btn btn-sm btn-outline" data-confirm="Waive fine of ₹@f.Amount?">Waive</button>
+                                        </form>
+                                    }
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="card-body">
+            <div class="empty-state"><div class="icon">💰</div><p>No fine records found.</p></div>
+        </div>
+    }
+</div>
+
+@if (ViewBag.TotalPages > 1)
+{
+    <div class="pagination">
+        @for (int i = 1; i <= (int)ViewBag.TotalPages; i++)
+        {
+            <a href="@Url.Action("Index", new { status = ViewBag.Status, page = i })" class="@(i == (int)ViewBag.CurrentPage ? "active" : "")">@i</a>
+        }
+    </div>
+}

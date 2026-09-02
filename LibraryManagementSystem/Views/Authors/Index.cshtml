@@ -1,0 +1,40 @@
+@model List<LibraryManagementSystem.Models.Author>
+@{ ViewData["Title"] = "Authors"; }
+
+<div class="page-header">
+    <h1>✍️ Authors</h1>
+    <a href="@Url.Action("Create")" class="btn btn-primary">➕ Add Author</a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" asp-action="Index">
+            <div class="search-bar">
+                <div class="search-input-group">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" name="searchTerm" value="@ViewBag.SearchTerm" placeholder="Search authors..." class="form-control" style="padding-left:40px;" />
+                </div>
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead><tr><th>Name</th><th>Biography</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+                @foreach (var author in Model)
+                {
+                    <tr>
+                        <td><strong>@author.Name</strong></td>
+                        <td class="text-sm text-muted">@(string.IsNullOrEmpty(author.Biography) ? "—" : author.Biography.Length > 80 ? author.Biography.Substring(0,80) + "..." : author.Biography)</td>
+                        <td><span class="badge @(author.IsActive ? "badge-active" : "badge-inactive")">@(author.IsActive ? "Active" : "Inactive")</span></td>
+                        <td class="actions"><a href="@Url.Action("Edit", new { id = author.AuthorId })" class="btn btn-sm btn-outline">Edit</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,46 @@
+@model List<LibraryManagementSystem.Models.Fine>
+@{ ViewData["Title"] = "My Fines"; }
+
+<div class="page-header">
+    <h1>💰 My Fines</h1>
+</div>
+
+<div class="card">
+    @if (Model.Any())
+    {
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Book</th>
+                        <th>Amount</th>
+                        <th>Reason</th>
+                        <th>Issued Date</th>
+                        <th>Paid Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var f in Model)
+                    {
+                        var badgeClass = f.Status == FineStatus.Paid ? "badge-paid" : f.Status == FineStatus.Waived ? "badge-waived" : "badge-overdue";
+                        <tr>
+                            <td>@f.Borrowing?.BookCopy?.Book?.Title</td>
+                            <td><strong>₹@f.Amount.ToString("F2")</strong></td>
+                            <td class="text-sm text-muted">@f.Reason</td>
+                            <td>@f.IssuedDate.ToString("MMM dd, yyyy")</td>
+                            <td>@(f.PaidDate?.ToString("MMM dd, yyyy") ?? "—")</td>
+                            <td><span class="badge @badgeClass">@f.Status</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="card-body">
+            <div class="empty-state"><div class="icon">💰</div><p>You have no fines recorded.</p></div>
+        </div>
+    }
+</div>

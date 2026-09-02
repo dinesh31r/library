@@ -1,0 +1,68 @@
+@model List<LibraryManagementSystem.Models.Borrowing>
+@{ ViewData["Title"] = "My Borrowings"; }
+
+<div class="page-header">
+    <h1>📑 My Borrowings History</h1>
+</div>
+
+<div class="card">
+    @if (Model.Any())
+    {
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Book Title</th>
+                        <th>Accession #</th>
+                        <th>Issue Date</th>
+                        <th>Due Date</th>
+                        <th>Return Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var b in Model)
+                    {
+                        var isOverdue = b.Status == BorrowingStatus.Issued && b.DueDate < DateTime.UtcNow;
+                        var badgeClass = b.Status == BorrowingStatus.Returned ? "badge-returned" : isOverdue ? "badge-overdue" : "badge-issued";
+                        <tr>
+                            <td><strong>@b.BookCopy?.Book?.Title</strong></td>
+                            <td class="text-muted text-sm">@b.BookCopy?.AccessionNumber</td>
+                            <td>@b.IssueDate.ToString("MMM dd, yyyy")</td>
+                            <td class="@(isOverdue ? "text-danger fw-600" : "")">@b.DueDate.ToString("MMM dd, yyyy")</td>
+                            <td>@(b.ReturnDate?.ToString("MMM dd, yyyy") ?? "—")</td>
+                            <td><span class="badge @badgeClass">@(isOverdue ? "Overdue" : b.Status.ToString())</span></td>
+                            <td>
+                                @if (b.Status == BorrowingStatus.Issued && b.RenewalCount < 2)
+                                {
+                                    <form asp-controller="User" asp-action="RequestRenewal" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@b.BorrowingId" />
+                                        <button type="submit" class="btn btn-sm btn-outline">Renew</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="card-body">
+            <div class="empty-state"><div class="icon">📖</div><p>You haven't borrowed any books yet.</p></div>
+        </div>
+    }
+</div>
+
+@if (ViewBag.TotalPages > 1)
+{
+    <div class="pagination">
+        @for (int i = 1; i <= (int)ViewBag.TotalPages; i++)
+        {
+            <a href="@Url.Action("MyBorrowings", new { page = i })" class="@(i == (int)ViewBag.CurrentPage ? "active" : "")">@i</a>
+        }
+    </div>
+}

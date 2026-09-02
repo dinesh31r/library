@@ -1,0 +1,185 @@
+@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    ViewData["Title"] = "Reports & Analytics";
+    var reportType = ViewBag.ReportType as string ?? "issued";
+    var reportData = ViewBag.ReportData;
+}
+
+<div class="page-header">
+    <h1>📈 Reports & Analytics</h1>
+    <a href="@Url.Action("ExportCsv", new { reportType = reportType, fromDate = ViewBag.FromDate, toDate = ViewBag.ToDate })" class="btn btn-accent">📥 Export CSV</a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" asp-action="Index">
+            <div class="search-bar">
+                <select name="reportType" class="form-control" style="max-width:200px;" onchange="this.form.submit()">
+                    <option value="issued" selected="@(reportType == "issued")">Issued Books Report</option>
+                    <option value="returned" selected="@(reportType == "returned")">Returned Books Report</option>
+                    <option value="overdue" selected="@(reportType == "overdue")">Overdue Books Report</option>
+                    <option value="mostBorrowed" selected="@(reportType == "mostBorrowed")">Most Borrowed Books</option>
+                    <option value="fines" selected="@(reportType == "fines")">Fines Collected Report</option>
+                    <option value="byCategory" selected="@(reportType == "byCategory")">Books by Category</option>
+                </select>
+                <input type="date" name="fromDate" value="@(ViewBag.FromDate?.ToString("yyyy-MM-dd"))" class="form-control" style="max-width:160px;" title="From Date" />
+                <input type="date" name="toDate" value="@(ViewBag.ToDate?.ToString("yyyy-MM-dd"))" class="form-control" style="max-width:160px;" title="To Date" />
+                <button type="submit" class="btn btn-primary">Generate Report</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>
+            @(reportType switch {
+                "issued" => "📤 Issued Books Log",
+                "returned" => "📥 Returned Books Log",
+                "overdue" => "⏰ Overdue Books Summary",
+                "mostBorrowed" => "🏆 Most Borrowed Books Ranking",
+                "fines" => "💰 Fines Log",
+                "byCategory" => "📚 Books Distribution by Category",
+                _ => "Report Data"
+            })
+        </h3>
+    </div>
+    <div class="card-body">
+        @if (reportType == "issued" || reportType == "returned")
+        {
+            var borrowings = reportData as List<LibraryManagementSystem.Models.Borrowing> ?? new List<LibraryManagementSystem.Models.Borrowing>();
+            if (borrowings.Any())
+            {
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead><tr><th>User</th><th>Book Title</th><th>Accession #</th><th>Issue Date</th><th>Due Date</th><th>Return Date</th><th>Status</th></tr></thead>
+                        <tbody>
+                            @foreach (var b in borrowings)
+                            {
+                                <tr>
+                                    <td>@b.User?.FullName</td>
+                                    <td>@b.BookCopy?.Book?.Title</td>
+                                    <td class="text-sm text-muted">@b.BookCopy?.AccessionNumber</td>
+                                    <td>@b.IssueDate.ToString("MMM dd, yyyy")</td>
+                                    <td>@b.DueDate.ToString("MMM dd, yyyy")</td>
+                                    <td>@(b.ReturnDate?.ToString("MMM dd, yyyy") ?? "—")</td>
+                                    <td><span class="badge @(b.Status == BorrowingStatus.Returned ? "badge-returned" : "badge-issued")">@b.Status</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else { <div class="empty-state"><p>No records found for the selected criteria.</p></div> }
+        }
+        else if (reportType == "overdue")
+        {
+            var overdue = reportData as List<LibraryManagementSystem.Models.Borrowing> ?? new List<LibraryManagementSystem.Models.Borrowing>();
+            if (overdue.Any())
+            {
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead><tr><th>User</th><th>Book Title</th><th>Accession #</th><th>Due Date</th><th>Overdue Days</th></tr></thead>
+                        <tbody>
+                            @foreach (var b in overdue)
+                            {
+                                var days = (DateTime.UtcNow - b.DueDate).Days;
+                                <tr>
+                                    <td>@b.User?.FullName</td>
+                                    <td>@b.BookCopy?.Book?.Title</td>
+                                    <td class="text-muted">@b.BookCopy?.AccessionNumber</td>
+                                    <td class="text-danger fw-600">@b.DueDate.ToString("MMM dd, yyyy")</td>
+                                    <td><span class="badge badge-overdue">@days days</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else { <div class="empty-state"><p>No overdue books!</p></div> }
+        }
+        else if (reportType == "mostBorrowed")
+        {
+            var books = reportData as List<LibraryManagementSystem.Models.Book> ?? new List<LibraryManagementSystem.Models.Book>();
+            if (books.Any())
+            {
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead><tr><th>Rank</th><th>Title</th><th>Author</th><th>Category</th><th>Total Copies</th><th>Available</th></tr></thead>
+                        <tbody>
+                            @{ var rank = 1; }
+                            @foreach (var b in books)
+                            {
+                                <tr>
+                                    <td><strong>#@(rank++)</strong></td>
+                                    <td><strong>@b.Title</strong></td>
+                                    <td>@b.Author?.Name</td>
+                                    <td>@b.Category?.Name</td>
+                                    <td>@b.TotalCopies</td>
+                                    <td><span class="badge badge-available">@b.AvailableCopies</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else { <div class="empty-state"><p>No data available.</p></div> }
+        }
+        else if (reportType == "fines")
+        {
+            var fines = reportData as List<LibraryManagementSystem.Models.Fine> ?? new List<LibraryManagementSystem.Models.Fine>();
+            if (fines.Any())
+            {
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead><tr><th>User</th><th>Amount</th><th>Reason</th><th>Issued Date</th><th>Paid Date</th><th>Status</th></tr></thead>
+                        <tbody>
+                            @foreach (var f in fines)
+                            {
+                                <tr>
+                                    <td>@f.User?.FullName</td>
+                                    <td><strong>₹@f.Amount.ToString("F2")</strong></td>
+                                    <td class="text-sm text-muted">@f.Reason</td>
+                                    <td>@f.IssuedDate.ToString("MMM dd, yyyy")</td>
+                                    <td>@(f.PaidDate?.ToString("MMM dd, yyyy") ?? "—")</td>
+                                    <td><span class="badge @(f.Status == FineStatus.Paid ? "badge-paid" : f.Status == FineStatus.Waived ? "badge-waived" : "badge-overdue")">@f.Status</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else { <div class="empty-state"><p>No fine records found.</p></div> }
+        }
+        else if (reportType == "byCategory")
+        {
+            var categoryMap = reportData as Dictionary<string, int> ?? new Dictionary<string, int>();
+            if (categoryMap.Any())
+            {
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead><tr><th>Category</th><th>Book Count</th><th>Percentage</th></tr></thead>
+                        <tbody>
+                            @{ var total = categoryMap.Values.Sum(); }
+                            @foreach (var kvp in categoryMap)
+                            {
+                                var pct = total > 0 ? (kvp.Value * 100.0 / total) : 0;
+                                <tr>
+                                    <td><strong>@kvp.Key</strong></td>
+                                    <td>@kvp.Value</td>
+                                    <td>
+                                        <div class="d-flex align-center gap-1">
+                                            <div style="background:var(--primary);height:10px;width:@(pct)%;border-radius:4px;min-width:4px;"></div>
+                                            <span class="text-sm text-muted">@pct.ToString("F1")%</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else { <div class="empty-state"><p>No categories recorded.</p></div> }
+        }
+    </div>
+</div>

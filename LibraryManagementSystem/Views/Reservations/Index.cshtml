@@ -1,0 +1,91 @@
+@model List<LibraryManagementSystem.Models.Reservation>
+@{ ViewData["Title"] = "Reservations Queue"; }
+
+<div class="page-header">
+    <h1>🔖 Reservations Queue</h1>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" asp-action="Index">
+            <div class="search-bar">
+                <select name="status" class="form-control" style="max-width:200px;" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    <option value="Pending" selected="@(ViewBag.Status == "Pending")">Pending</option>
+                    <option value="Ready" selected="@(ViewBag.Status == "Ready")">Ready for Pickup</option>
+                    <option value="Fulfilled" selected="@(ViewBag.Status == "Fulfilled")">Fulfilled</option>
+                    <option value="Expired" selected="@(ViewBag.Status == "Expired")">Expired</option>
+                    <option value="Cancelled" selected="@(ViewBag.Status == "Cancelled")">Cancelled</option>
+                </select>
+                <button type="submit" class="btn btn-primary">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    @if (Model.Any())
+    {
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Book Title</th>
+                        <th>User</th>
+                        <th>Reservation Date</th>
+                        <th>Queue Position</th>
+                        <th>Expiry Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model)
+                    {
+                        var badgeClass = r.Status switch {
+                            ReservationStatus.Ready => "badge-ready",
+                            ReservationStatus.Pending => "badge-pending",
+                            ReservationStatus.Fulfilled => "badge-fulfilled",
+                            ReservationStatus.Expired => "badge-expired",
+                            _ => "badge-cancelled"
+                        };
+                        <tr>
+                            <td><strong>@r.Book?.Title</strong></td>
+                            <td>@r.User?.FullName</td>
+                            <td>@r.ReservationDate.ToString("MMM dd, yyyy")</td>
+                            <td><span class="badge badge-issued">#@r.QueuePosition</span></td>
+                            <td class="text-sm text-muted">@(r.ExpiryDate?.ToString("MMM dd, yyyy") ?? "—")</td>
+                            <td><span class="badge @badgeClass">@r.Status</span></td>
+                            <td class="actions">
+                                @if (r.Status == ReservationStatus.Ready)
+                                {
+                                    <form asp-action="Fulfill" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@r.ReservationId" />
+                                        <button type="submit" class="btn btn-sm btn-success" data-confirm="Mark this reservation as fulfilled?">Mark Fulfilled</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="card-body">
+            <div class="empty-state"><div class="icon">🔖</div><p>No reservations found.</p></div>
+        </div>
+    }
+</div>
+
+@if (ViewBag.TotalPages > 1)
+{
+    <div class="pagination">
+        @for (int i = 1; i <= (int)ViewBag.TotalPages; i++)
+        {
+            <a href="@Url.Action("Index", new { status = ViewBag.Status, page = i })" class="@(i == (int)ViewBag.CurrentPage ? "active" : "")">@i</a>
+        }
+    </div>
+}
