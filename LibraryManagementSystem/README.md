@@ -1,170 +1,88 @@
-# 📚 Library Management System
+# BEL Library Management System - Classic ASP (.asp) & MySQL
 
-A production-ready, feature-rich web application built with **.NET 8 (ASP.NET Core MVC)**, **Entity Framework Core**, **MySQL**, and **ASP.NET Core Identity**. The system supports full library operations including catalog administration, circulation (issuing/returning books), online holds & reservations, automated overdue fine calculation, reporting & analytics, and role-based access control (RBAC).
+A complete, feature-rich **Classic ASP (`.asp`)** web application for library management built with **VBScript**, **ADODB**, and **MySQL (SQLyog)**. 
 
----
+The system features **3-Role Access Control (RBAC)**, custom **Book Requests with Start & End Dates**, dynamic dashboards, and full catalog management.
+
+--- 
 
 ## 🌟 Key Features
 
-### 👤 Role-Based Access Control (RBAC)
-- **Admin**: Full catalog & user administration, system configuration, financial reports, audit logging.
-- **Librarian**: Desk operations, checkout/checkin processing, copy status management, hold fulfillment, fine collection.
-- **User (Member)**: Catalog searching, book reservations, online renewal, loan history tracking, notification center.
-
-### 📖 Catalog Management
-- Hierarchical structure supporting **Books**, **Physical Book Copies**, **Authors**, **Publishers**, and **Categories**.
-- Real-time physical copy tracking (`Available`, `Issued`, `Reserved`, `Maintenance`, `Damaged`, `Lost`).
-
-### 🔄 Circulation & Hold Engine
-- **Check-out / Issue:** Enforces user borrowing limits, overdue blocks, and active fine checks.
-- **Check-in / Return:** Automated calculation of late return fees based on configurable daily rates.
-- **Hold & Reservations:** Automated queue management; notifies patrons when reserved titles become available upon return.
-- **Renewals:** Online self-service loan extension subject to renewal count limits and reservation checks.
-
-### 💰 Fine & Payment Tracking
-- Automatic overdue fine generation.
-- Support for recording payments (Cash, Card, Online) or processing administrator fine waivers.
-- Aggregated financial tracking (Collected vs. Outstanding pending fines).
-
-### 📊 Analytics & Reporting
-- Comprehensive executive reports:
-  - Circulation trends (Most borrowed titles, active loans)
-  - Category breakdowns
-  - Financial reports (Fine revenue & outstanding debts)
-  - Audit logging for operational transparency
+* **3-Role Access Control (RBAC)**:
+  * 🔴 **Admin**: Full control over system overview metrics, books (add/edit/delete), member book request approvals, authors, and categories.
+  * 🟣 **Librarian**: Operational management of system overview metrics, books (add/edit), member book request approvals, issue/return transactions, authors, and categories.
+  * 🟢 **Member**: Personal dashboard, book catalog search, custom book requesting, and personal borrowing history tracking.
+* **Book Request & Approval Pipeline**:
+  * Members select books and submit requests specifying custom **Start Date** (Borrow Date) and **End Date** (Due Date).
+  * Staff (Admin/Librarian) review pending requests on `requests.asp` to **Approve** or **Reject** them.
+  * Approving a request automatically creates an active borrowing transaction and updates available book copies.
+* **Dual-View Dashboards**:
+  * Staff sees system-wide counters (Total Books, Pending Requests, Active Borrowings, Total Members).
+  * Members see personal metrics (Active Borrowings, Pending Requests, Available Books).
 
 ---
 
-## 🛠️ Technology Stack
+## 🔐 Default Test Credentials
 
-| Component | Technology |
-|---|---|
-| **Framework** | .NET 8.0 ASP.NET Core MVC |
-| **ORM** | Entity Framework Core 8.0 (`Pomelo.EntityFrameworkCore.MySql`) |
-| **Database** | **MySQL / MariaDB** (Default, fully integrated with **SQLyog**) |
-| **Authentication** | ASP.NET Core Identity (Cookie-based auth with RBAC) |
-| **Data Utilities** | CsvHelper (Data import/export) |
-| **Frontend** | Razor Views, Vanilla CSS, JavaScript, HTML5 |
+| Role | Username | Email | Password | Access Rights |
+| :--- | :--- | :--- | :--- | :--- |
+| **Admin** | Admin User | `admin@bel.com` | `Password123!` | Full System Control (Metrics, Books Add/Edit/Delete, Requests, Authors, Categories) |
+| **Librarian** | Librarian Sarah | `librarian@bel.com` | `Password123!` | Operational Staff (Metrics, Books Add/Edit, Request Approvals/Rejections, Authors, Categories) |
+| **Member** | John Doe | `john.doe@bel.com` | `Password123!` | Member View (Personal Dashboard, Book Requesting, Personal History) |
+| **Member** | Jane Smith | `jane.smith@bel.com` | `Password123!` | Member View (Personal Dashboard, Book Requesting, Personal History) |
 
 ---
 
-## 🐬 Database Configuration & SQLyog Management
-
-The application is configured to use **MySQL / MariaDB** as its default database engine.
-
-### 1. `appsettings.json` Configuration:
-```json
-{
-  "DatabaseProvider": "MySql",
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=LibraryDb;User=root;Password=root;"
-  }
-}
-```
-*Note: Replace `root` / `root` with your MySQL server credentials if different.*
-
-### 2. Viewing & Managing Data in SQLyog:
-1. Launch **SQLyog**.
-2. Create a new Connection:
-   - **MySQL Host Address:** `localhost` (or `127.0.0.1`)
-   - **Username:** `root`
-   - **Password:** *your MySQL root password*
-   - **Port:** `3306`
-   - **Database:** `LibraryDb`
-3. Click **Connect** to manage tables, run queries, and monitor real-time library transactions visually!
-
----
-
-## 🧪 Testing & Verification Guide
-
-### 1. Build & Compilation Verification
-To verify that the project compiles cleanly without errors:
-```powershell
-dotnet build
-```
-*Expected Output:* `Build succeeded. 0 Warning(s), 0 Error(s)`
-
-### 2. Role-Based End-to-End Test Scenarios
-
-#### 👑 Scenario A: Administrator Verification
-1. Log in at `http://localhost:5026/Account/Login` using `admin@library.com` / `Admin@123456`.
-2. **Dashboard Test:** Confirm system statistics (Total Books, Total Users, Active Loans, Overdue Fines) render correctly.
-3. **User Management Test:** Navigate to **Administration -> User Management**. Test creating a new user, updating roles, or toggling user status.
-4. **Audit Log Verification:** Navigate to **Administration -> Audit Logs** to confirm system actions are recorded with timestamps and IP addresses.
-
-#### 📚 Scenario B: Librarian Desk Operations Test
-1. Log in using `librarian@library.com` / `Librarian@123456`.
-2. **Issue Book Test:** Navigate to **Circulation -> Issue Book**. Select a patron and an available book copy to check out.
-3. **Return & Fine Calculation Test:** Navigate to **Circulation -> Return Book**. Search by copy barcode/ID and process a return. If the loan is overdue, verify fine calculation.
-4. **Fine Collection Test:** Navigate to **Circulation -> Fines**. Record a cash or card payment and verify status updates to `Paid`.
-
-#### 👤 Scenario C: Member Self-Service Test
-1. Log in using `user@library.com` / `User@123456`.
-2. **Catalog Search Test:** Navigate to **Browse Books**. Search for a title/author and view physical copy availability.
-3. **Reservation Test:** Place a hold request on a book.
-4. **Self-Service Renewal Test:** Navigate to **My Borrowings** and click **Renew** on an active loan.
-
-### 3. Database Integrity & SQLyog Verification
-1. Connect **SQLyog** to your MySQL instance (`localhost:3306`, database `LibraryDb`).
-2. Verify the following core tables are populated with seed data:
-   - `AspNetUsers`: Contains Admin, Librarian, and User seed accounts.
-   - `Books` & `BookCopies`: Contains catalog items and physical barcodes.
-   - `Borrowings`: Tracks active and completed loan transactions.
-   - `Fines`: Tracks pending, paid, and waived fee records.
-   - `AuditLogs`: Captures operational events across the application.
-
----
-
-## 🚀 Quick Start Guide
-
-### Prerequisites
-- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) installed.
-- **MySQL Server** / **MariaDB** (or XAMPP/WAMP) running locally on port `3306`.
-
-### Running the Application
-
-1. **Navigate to the project folder:**
-   ```powershell
-   cd c:\Projects\library\LibraryManagementSystem
-   ```
-
-2. **Run the application:**
-   ```powershell
-   dotnet run --launch-profile http
-   ```
-
-3. **Access the application:**
-   Open your browser and navigate to:
-   👉 **`http://localhost:5026`**
-
----
-
-## 🔑 Default Seed Credentials
-
-Upon first startup, the system automatically initializes the MySQL database schema (`LibraryDb`) and seeds initial sample records alongside pre-configured accounts:
-
-| Role | Email | Password |
-|---|---|---|
-| 👑 **Admin** | `admin@library.com` | `Admin@123456` |
-| 📚 **Librarian** | `librarian@library.com` | `Librarian@123456` |
-| 👤 **User (Member)** | `user@library.com` | `User@123456` |
-
----
-
-## 📂 Project Structure
+## 🛠️ Project Structure
 
 ```
 LibraryManagementSystem/
-├── Controllers/            # MVC Controllers (Admin, Librarian, User, Books, Fines, etc.)
-├── Data/                   # DbContext and DbInitializer (MySQL Seed Data)
-├── Models/                 # Domain Entities (Book, Borrowing, Fine, Reservation, User, etc.)
-├── Services/               # Business Logic Layer (Book, Borrowing, Fine, Audit, Settings)
-├── ViewModels/             # View Data Models & DTOs
-├── Views/                  # Razor Views grouped by module
-└── wwwroot/                # Static assets (CSS, JS, Libraries)
+├── includes/
+│   └── db_config.asp       # MySQL ODBC connection string, VBScript helpers & Navbar Header/Footer
+├── authors.asp             # Authors management (Staff access: Add, List, Delete)
+├── books.asp               # Book catalog & live search (Staff: Add/Edit/Delete; Member: Request Book)
+├── books_add.asp           # Add new book record (Staff only)
+├── books_edit.asp          # Edit book details (Staff only)
+├── books_delete.asp        # Delete book record (Admin only)
+├── borrowings.asp          # Issue books & process return transactions (Staff view & Member history)
+├── categories.asp          # Book categories management (Staff access)
+├── dashboard.asp           # Role-aware metrics dashboard (System vs. Member view)
+├── login.asp               # User sign-in with password verification & credential references
+├── logout.asp              # Session sign-out handler
+├── request_book.asp        # Member book request form (Start Date & End Date selection)
+├── requests.asp           # Book requests approval/rejection pipeline (Staff) & Request status ledger (Member)
+└── schema_mysql.sql        # MySQL database schema & seed data (SQLyog compatible)
 ```
 
 ---
 
-## 📝 License
-This project is open source and available for educational and production deployment.
+## 🚀 Setup & Installation Guide
+
+### Step 1: Database Setup in SQLyog / MySQL
+1. Open **SQLyog** (or MySQL Workbench / Command Line) and connect to your MySQL Server instance (`localhost:3306`).
+2. Open `schema_mysql.sql` and execute all statements.
+3. This creates the `LibraryDb` database and seeds users, authors, categories, and books.
+
+### Step 2: Configure IIS Server
+1. Press `Win + R`, type `optionalfeatures`, and press **Enter**.
+2. Under **Internet Information Services ➔ World Wide Web Services ➔ Application Development Features**, enable **ASP** (Classic ASP).
+3. Ensure **MySQL ODBC Driver** (e.g. `MySQL ODBC 26.7 Unicode Driver` or `MySQL ODBC 8.0 Driver`) is installed.
+4. Open **IIS Manager** (`inetmgr`):
+   * Create a Virtual Directory / Application pointing to `C:\Projects\library\LibraryManagementSystem`.
+   * Open **ASP** settings in IIS Manager and set **Enable Parent Paths** to `True`.
+
+### Step 3: Access the Application
+Open browser and navigate to:
+👉 **`http://localhost/LibraryManagementSystem/login.asp`**
+
+---
+
+## 🌐 Accessing from Other PCs on Local Wi-Fi / LAN (Zero Setup!)
+
+If the app is running on your PC, other devices on the same Wi-Fi network can access it without installing anything:
+
+1. Open Command Prompt on your PC, type `ipconfig`, and find your **IPv4 Address** (e.g. `192.168.1.15`).
+2. On any other PC, laptop, tablet, or mobile phone connected to the same Wi-Fi, open the browser and navigate to:
+   ```text
+   http://192.168.1.15/LibraryManagementSystem/login.asp
+   ```
