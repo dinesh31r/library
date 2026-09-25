@@ -101,32 +101,53 @@ Set rsList = conn.Execute(sqlList)
 RenderHeader IIf(IsStaff(), "Book Borrowing Management", "My Borrowed Books")
 %>
 
+<!-- Header & Actions -->
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom: 22px;">
+    <div>
+        <h1 style="font-size:22px; font-weight:800; color:var(--text-primary); margin-bottom:4px;">
+            <%= IIf(IsStaff(), "Borrowing Transactions & Issue Desk", "My Borrowed Books History") %>
+        </h1>
+        <p style="font-size:13px; color:var(--text-muted); margin:0;">
+            Track active book loans, process returns, and monitor overdue deadlines.
+        </p>
+    </div>
+
+    <% If Not IsStaff() Then %>
+        <a href="request_book.asp" class="btn btn-primary">+ Request a Book</a>
+    <% End If %>
+</div>
+
+<% If errorMessage <> "" Then %>
+    <div class="alert alert-danger"><%= CleanText(errorMessage) %></div>
+<% End If %>
+
+<% If successMessage <> "" Then %>
+    <div class="alert alert-info"><%= CleanText(successMessage) %></div>
+<% End If %>
+
 <% If IsStaff() Then %>
-    <div class="card">
+    <!-- Issue Book Desk Card -->
+    <div class="card" style="margin-bottom:22px;">
         <div class="card-header">
-            <h2 style="margin:0; color:#2c3e50;">Issue / Borrow Book</h2>
+            <h2 class="card-title">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Issue / Check Out Book
+            </h2>
+            <span style="font-size:12.5px; color:var(--text-muted);">Standard borrowing term: 15 days</span>
         </div>
 
-        <% If errorMessage <> "" Then %>
-            <div class="alert alert-danger"><%= CleanText(errorMessage) %></div>
-        <% End If %>
-
-        <% If successMessage <> "" Then %>
-            <div class="alert alert-info"><%= CleanText(successMessage) %></div>
-        <% End If %>
-
-        <form action="borrowings.asp" method="POST" style="display:grid; grid-template-columns: 2fr 2fr 1fr 1fr; gap:15px; align-items:end;">
+        <form action="borrowings.asp" method="POST" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; align-items:end;">
             <input type="hidden" name="action_type" value="issue">
 
             <div class="form-group" style="margin-bottom:0;">
                 <label for="book_id">Select Book</label>
-                <select id="book_id" name="book_id" required>
-                    <option value="">-- Choose Book --</option>
+                <select id="book_id" name="book_id" class="form-control" required>
+                    <option value="">-- Choose Book from Shelves --</option>
                     <%
                     If Not rsBooks Is Nothing And rsBooks.State = 1 Then
                         Do While Not rsBooks.EOF
                     %>
-                        <option value="<%= rsBooks("id") %>"><%= CleanText(rsBooks("title") & "") %> (<%= rsBooks("copies_available") %> left)</option>
+                        <option value="<%= rsBooks("id") %>"><%= CleanText(rsBooks("title") & "") %> (<%= rsBooks("copies_available") %> in stock)</option>
                     <%
                             rsBooks.MoveNext
                         Loop
@@ -136,9 +157,9 @@ RenderHeader IIf(IsStaff(), "Book Borrowing Management", "My Borrowed Books")
             </div>
 
             <div class="form-group" style="margin-bottom:0;">
-                <label for="user_id">Select Staff Member</label>
-                <select id="user_id" name="user_id" required>
-                    <option value="">-- Choose Staff Member --</option>
+                <label for="user_id">Select Member / Staff</label>
+                <select id="user_id" name="user_id" class="form-control" required>
+                    <option value="">-- Choose Member Account --</option>
                     <%
                     If Not rsUsers Is Nothing And rsUsers.State = 1 Then
                         Do While Not rsUsers.EOF
@@ -153,139 +174,145 @@ RenderHeader IIf(IsStaff(), "Book Borrowing Management", "My Borrowed Books")
             </div>
 
             <div class="form-group" style="margin-bottom:0;">
-                <label for="days">Days Due (Standard: 15)</label>
-                <input type="number" id="days" name="days" value="15" min="1" required>
+                <label for="days">Loan Duration (Days)</label>
+                <input type="number" id="days" name="days" class="form-control" value="15" min="1" max="90" required>
             </div>
 
             <div>
-                <button type="submit" class="btn btn-success" style="width:100%; padding:10px;">Issue Book</button>
+                <button type="submit" class="btn btn-primary" style="width:100%; height:42px;">
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                    Issue Book
+                </button>
             </div>
         </form>
     </div>
 <% End If %>
 
-<div class="card">
-    <div class="card-header">
-        <div>
-            <h3 style="margin:0; color:#2c3e50;"><%= IIf(IsStaff(), "Active & Past Borrowing Log", "My Borrowed Books History") %></h3>
-            <% If IsStaff() Then %>
-                <p style="margin:4px 0 0 0; color:#e74c3c; font-size:13px; font-weight:600;">🚨 Note: Borrowings reaching day 16 (past 15-day return limit) are highlighted in bright red.</p>
-            <% End If %>
-        </div>
+<!-- Search & Table Card -->
+<div class="card" style="padding:16px 20px; margin-bottom:20px;">
+    <div class="search-input-wrap">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display:none;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input type="text" class="search-input" data-live-filter="borrowingsTable" placeholder="Search..." style="background:transparent; border:none; padding:0; font-size:13px; color:var(--text-primary);">
     </div>
+</div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Book Title</th>
-                <% If IsStaff() Then %>
-                    <th>Staff Name</th>
-                <% End If %>
-                <th>Borrowed On</th>
-                <th>Due On (Day 15)</th>
-                <th>Returned On</th>
-                <th>Status</th>
-                <% If IsStaff() Then %>
-                    <th>Action</th>
-                <% End If %>
-            </tr>
-        </thead>
-        <tbody>
-            <%
-            If rsList Is Nothing Or rsList.State = 0 Or rsList.EOF Then
-            %>
+<div class="card" style="padding:0; overflow:hidden;">
+    <div class="table-responsive">
+        <table id="borrowingsTable">
+            <thead>
                 <tr>
-                    <td colspan="<%= IIf(IsStaff(), 8, 6) %>" style="text-align:center; color:#95a5a6;">No borrowing transactions found.</td>
-                </tr>
-            <%
-            Else
-                Do While Not rsList.EOF
-                    bStatus = rsList("status") & ""
-                    bBorrowDate = rsList("borrow_date")
-                    bDueDate = rsList("due_date")
-                    bReturnDate = rsList("return_date")
-                    
-                    isOverdueRed = False
-                    If bStatus <> "Returned" And Not IsNull(bDueDate) And IsDate(bDueDate) Then
-                        If Date > CDate(bDueDate) Then
-                            isOverdueRed = True
-                        End If
-                    End If
-                    
-                    If isOverdueRed Then
-                        rowStyle = "style='background-color:#fce4e4; color:#721c24; border-left: 6px solid #e74c3c; font-weight:bold;'"
-                    Else
-                        rowStyle = ""
-                    End If
-
-                    If Not IsNull(bBorrowDate) And IsDate(bBorrowDate) Then
-                        fmtBorrowDate = FormatDateTime(bBorrowDate, 2)
-                    Else
-                        fmtBorrowDate = "-"
-                    End If
-
-                    If Not IsNull(bDueDate) And IsDate(bDueDate) Then
-                        fmtDueDate = FormatDateTime(bDueDate, 2)
-                    Else
-                        fmtDueDate = "-"
-                    End If
-
-                    If Not IsNull(bReturnDate) And IsDate(bReturnDate) Then
-                        fmtReturnDate = FormatDateTime(bReturnDate, 2)
-                    Else
-                        fmtReturnDate = "-"
-                    End If
-            %>
-                <tr <%= rowStyle %>>
-                    <td>#<%= rsList("id") %></td>
-                    <td><strong style="color:#2c3e50;"><%= CleanText(rsList("title") & "") %></strong></td>
+                    <th class="sortable">ID</th>
+                    <th class="sortable">Book Title</th>
                     <% If IsStaff() Then %>
-                        <td><%= CleanText(rsList("username") & "") %></td>
+                        <th class="sortable">Member / Staff</th>
                     <% End If %>
-                    <td><%= fmtBorrowDate %></td>
-                    <td><%= fmtDueDate %></td>
-                    <td>
-                        <% If fmtReturnDate <> "-" Then %>
-                            <%= fmtReturnDate %>
-                        <% Else %>
-                            <span style="color:#95a5a6;">-</span>
-                        <% End If %>
-                    </td>
-                    <td>
-                        <% If isOverdueRed Then %>
-                            <span class="badge bg-danger" style="font-size:12px;">🚨 OVERDUE (Day 16+)</span>
-                        <% ElseIf bStatus = "Returned" Then %>
-                            <span class="badge bg-success">Returned</span>
-                        <% Else %>
-                            <span class="badge bg-warning">Borrowed</span>
-                        <% End If %>
-                    </td>
+                    <th class="sortable">Borrowed On</th>
+                    <th class="sortable">Due Date</th>
+                    <th class="sortable">Returned On</th>
+                    <th>Status</th>
                     <% If IsStaff() Then %>
+                        <th style="text-align:right;">Action</th>
+                    <% End If %>
+                </tr>
+            </thead>
+            <tbody>
+                <%
+                If rsList Is Nothing Or rsList.State = 0 Or rsList.EOF Then
+                %>
+                    <tr>
+                        <td colspan="<%= IIf(IsStaff(), 8, 6) %>" style="text-align:center; padding:32px; color:var(--text-muted);">No borrowing transactions found.</td>
+                    </tr>
+                <%
+                Else
+                    Do While Not rsList.EOF
+                        bStatus = rsList("status") & ""
+                        bBorrowDate = rsList("borrow_date")
+                        bDueDate = rsList("due_date")
+                        bReturnDate = rsList("return_date")
+                        
+                        isOverdueRed = False
+                        If bStatus <> "Returned" And Not IsNull(bDueDate) And IsDate(bDueDate) Then
+                            If Date > CDate(bDueDate) Then
+                                isOverdueRed = True
+                            End If
+                        End If
+                        
+                        If isOverdueRed Then
+                            rowStyle = "style='background-color:var(--danger-bg); border-left: 4px solid var(--danger); font-weight:600;'"
+                        Else
+                            rowStyle = ""
+                        End If
+
+                        If Not IsNull(bBorrowDate) And IsDate(bBorrowDate) Then
+                            fmtBorrowDate = FormatDateTime(bBorrowDate, 2)
+                        Else
+                            fmtBorrowDate = "-"
+                        End If
+
+                        If Not IsNull(bDueDate) And IsDate(bDueDate) Then
+                            fmtDueDate = FormatDateTime(bDueDate, 2)
+                        Else
+                            fmtDueDate = "-"
+                        End If
+
+                        If Not IsNull(bReturnDate) And IsDate(bReturnDate) Then
+                            fmtReturnDate = FormatDateTime(bReturnDate, 2)
+                        Else
+                            fmtReturnDate = "-"
+                        End If
+                %>
+                    <tr <%= rowStyle %>>
+                        <td><strong>#<%= rsList("id") %></strong></td>
+                        <td><strong style="color:var(--text-primary);"><%= CleanText(rsList("title") & "") %></strong></td>
+                        <% If IsStaff() Then %>
+                            <td><%= CleanText(rsList("username") & "") %></td>
+                        <% End If %>
+                        <td><%= fmtBorrowDate %></td>
+                        <td><%= fmtDueDate %></td>
                         <td>
-                            <% If bStatus <> "Returned" Then %>
-                                <form action="borrowings.asp" method="POST" style="display:inline-block;">
-                                    <input type="hidden" name="action_type" value="return">
-                                    <input type="hidden" name="borrow_id" value="<%= rsList("id") %>">
-                                    <button type="submit" class="btn btn-primary" style="padding:4px 8px; font-size:12px;">Mark Returned</button>
-                                </form>
+                            <% If fmtReturnDate <> "-" Then %>
+                                <%= fmtReturnDate %>
                             <% Else %>
-                                <span style="color:#95a5a6; font-size:12px;">Completed</span>
+                                <span style="color:var(--text-muted);">-</span>
                             <% End If %>
                         </td>
-                    <% End If %>
-                </tr>
-            <%
-                    rsList.MoveNext
-                Loop
-                rsList.Close
-            End If
+                        <td>
+                            <% If isOverdueRed Then %>
+                                <span class="badge badge-danger"><span class="badge-dot"></span>Overdue (Day 16+)</span>
+                            <% ElseIf bStatus = "Returned" Then %>
+                                <span class="badge badge-success"><span class="badge-dot"></span>Returned</span>
+                            <% Else %>
+                                <span class="badge badge-warning"><span class="badge-dot"></span>Active Loan</span>
+                            <% End If %>
+                        </td>
+                        <% If IsStaff() Then %>
+                            <td style="text-align:right;">
+                                <% If bStatus <> "Returned" Then %>
+                                    <form action="borrowings.asp" method="POST" style="margin:0; display:inline-block;">
+                                        <input type="hidden" name="action_type" value="return">
+                                        <input type="hidden" name="borrow_id" value="<%= rsList("id") %>">
+                                        <button type="submit" class="btn btn-primary btn-sm">Process Return</button>
+                                    </form>
+                                <% Else %>
+                                    <span style="color:var(--text-muted); font-size:12px;">Archived</span>
+                                <% End If %>
+                            </td>
+                        <% End If %>
+                    </tr>
+                <%
+                        rsList.MoveNext
+                    Loop
+                    rsList.Close
+                End If
 
-            conn.Close
-            Set conn = Nothing
-            %>
-        </tbody>
-    </table>
+                conn.Close
+                Set conn = Nothing
+                %>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <% RenderFooter %>

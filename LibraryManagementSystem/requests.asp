@@ -131,125 +131,147 @@ Set rsList = conn.Execute(sqlList)
 RenderHeader IIf(IsStaff(), "Book Requests Approval", "My Book Requests")
 %>
 
-<div class="card">
-    <div class="card-header">
-        <div>
-            <h2 style="margin:0; color:#2c3e50;"><%= IIf(IsStaff(), "Staff Book Requests & Collection Approval", "My Book Requests") %></h2>
-            <p style="margin:4px 0 0 0; color:#7f8c8d; font-size:13px;">Approved requests must be collected within <strong>48 hours</strong>; otherwise they auto-expire and return to inventory.</p>
-        </div>
-        <a href="request_book.asp" class="btn btn-success">+ Request a Book</a>
+<!-- Header & Actions -->
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom: 22px;">
+    <div>
+        <h1 style="font-size:22px; font-weight:800; color:var(--text-primary); margin-bottom:4px;">
+            <%= IIf(IsStaff(), "Book Requests & Collection Pipeline", "My Book Requests") %>
+        </h1>
+        <p style="font-size:13px; color:var(--text-muted); margin:0;">
+            Approved requests must be collected within <strong>48 hours</strong>; otherwise they auto-expire and release stock back to inventory.
+        </p>
     </div>
 
-    <% If errorMessage <> "" Then %>
-        <div class="alert alert-danger"><%= CleanText(errorMessage) %></div>
-    <% End If %>
+    <a href="request_book.asp" class="btn btn-primary">+ Request a Book</a>
+</div>
 
-    <% If successMessage <> "" Then %>
-        <div class="alert alert-info"><%= CleanText(successMessage) %></div>
-    <% End If %>
+<% If errorMessage <> "" Then %>
+    <div class="alert alert-danger"><%= CleanText(errorMessage) %></div>
+<% End If %>
 
-    <table style="font-size:13px;">
-        <thead>
-            <tr>
-                <th>Req / Book ID</th>
-                <th>Staff Name</th>
-                <th>Staff Phone</th>
-                <th>Internal Ext No.</th>
-                <th>Book Title</th>
-                <th>Author</th>
-                <th>Price (&#8377;)</th>
-                <th>Borrow Dates</th>
-                <th>Status &amp; 48h Window</th>
-                <% If IsStaff() Then %>
-                    <th>Action</th>
-                <% End If %>
-            </tr>
-        </thead>
-        <tbody>
-            <%
-            If rsList Is Nothing Or rsList.State = 0 Or rsList.EOF Then
-            %>
+<% If successMessage <> "" Then %>
+    <div class="alert alert-info"><%= CleanText(successMessage) %></div>
+<% End If %>
+
+<div class="card" style="padding:16px 20px; margin-bottom:20px;">
+    <div class="search-input-wrap">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display:none;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input type="text" class="search-input" data-live-filter="requestsTable" placeholder="Search..." style="background:transparent; border:none; padding:0; font-size:13px; color:var(--text-primary);">
+    </div>
+</div>
+
+<div class="card" style="padding:0; overflow:hidden;">
+    <div class="table-responsive">
+        <table id="requestsTable">
+            <thead>
                 <tr>
-                    <td colspan="<%= IIf(IsStaff(), 10, 9) %>" style="text-align:center; color:#95a5a6; padding:20px;">No book requests found.</td>
-                </tr>
-            <%
-            Else
-                Do While Not rsList.EOF
-                    reqStatus = rsList("status")
-                    approvedAt = rsList("approved_at")
-                    hoursRemaining = 48
-                    
-                    If reqStatus = "Approved" And Not IsNull(approvedAt) Then
-                        hoursPassed = DateDiff("h", approvedAt, Now())
-                        hoursRemaining = 48 - hoursPassed
-                        If hoursRemaining < 0 Then hoursRemaining = 0
-                    End If
-            %>
-                <tr>
-                    <td>
-                        <strong style="color:#2c3e50;">Req #<%= rsList("req_id") %></strong><br>
-                        <small style="color:#7f8c8d;">Book ID: #<%= rsList("book_id") %></small>
-                    </td>
-                    <td><strong><%= CleanText(rsList("staff_name") & "") %></strong></td>
-                    <td><code><%= CleanText(rsList("staff_number") & "") %></code></td>
-                    <td><span class="badge bg-secondary" style="background:#6c757d;"><%= CleanText(rsList("staff_internal_number") & "") %></span></td>
-                    <td><strong style="color:#16a085; font-size:14px;"><%= CleanText(rsList("book_name") & "") %></strong></td>
-                    <td><%= CleanText(rsList("author_name") & "") %></td>
-                    <td><strong style="color:#27ae60;">&#8377;<%= FormatNumber(SafeFloat(rsList("price"), 0), 2) %></strong></td>
-                    <td>
-                        <small>From: <%= FormatDateTime(rsList("start_date"), 2) %></small><br>
-                        <small>To: <%= FormatDateTime(rsList("end_date"), 2) %></small>
-                    </td>
-                    <td>
-                        <% If reqStatus = "Approved" Then %>
-                            <span class="badge bg-success">Approved</span><br>
-                            <small style="color:#27ae60; font-weight:bold;">Collect in <%= hoursRemaining %>h</small>
-                        <% ElseIf reqStatus = "Collected" Then %>
-                            <span class="badge bg-primary" style="background:#3498db;">Collected / Issued</span>
-                        <% ElseIf reqStatus = "Expired" Then %>
-                            <span class="badge bg-danger">Expired (48h Passed)</span>
-                        <% ElseIf reqStatus = "Rejected" Then %>
-                            <span class="badge bg-danger">Rejected</span>
-                        <% Else %>
-                            <span class="badge bg-warning">Pending Approval</span>
-                        <% End If %>
-                    </td>
+                    <th class="sortable">Req ID</th>
+                    <th class="sortable">Member / Staff</th>
+                    <th class="sortable">Contact Details</th>
+                    <th class="sortable">Book Title</th>
+                    <th class="sortable">Author</th>
+                    <th class="sortable">Price</th>
+                    <th class="sortable">Requested Window</th>
+                    <th>Status &amp; Window</th>
                     <% If IsStaff() Then %>
-                        <td>
-                            <% If reqStatus = "Pending" Then %>
-                                <form action="requests.asp" method="POST" style="display:inline-block; margin-right:4px;">
-                                    <input type="hidden" name="action_type" value="approve">
-                                    <input type="hidden" name="request_id" value="<%= rsList("req_id") %>">
-                                    <button type="submit" class="btn btn-success" style="padding:4px 8px; font-size:11px;">Approve</button>
-                                </form>
-                                <form action="requests.asp" method="POST" style="display:inline-block;">
-                                    <input type="hidden" name="action_type" value="reject">
-                                    <input type="hidden" name="request_id" value="<%= rsList("req_id") %>">
-                                    <button type="submit" class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="return confirm('Reject this request?');">Reject</button>
-                                </form>
-                            <% ElseIf reqStatus = "Approved" Then %>
-                                <form action="requests.asp" method="POST" style="display:inline-block;">
-                                    <input type="hidden" name="action_type" value="collect">
-                                    <input type="hidden" name="request_id" value="<%= rsList("req_id") %>">
-                                    <button type="submit" class="btn btn-primary" style="padding:4px 8px; font-size:11px; background:#27ae60;">Mark Collected</button>
-                                </form>
-                            <% Else %>
-                                <span style="color:#95a5a6; font-size:11px;"><%= reqStatus %></span>
-                            <% End If %>
-                        </td>
+                        <th style="text-align:right;">Actions</th>
                     <% End If %>
                 </tr>
-            <%
-                    rsList.MoveNext
-                Loop
-                rsList.Close
-            End If
+            </thead>
+            <tbody>
+                <%
+                If rsList Is Nothing Or rsList.State = 0 Or rsList.EOF Then
+                %>
+                    <tr>
+                        <td colspan="<%= IIf(IsStaff(), 9, 8) %>" style="text-align:center; color:var(--text-muted); padding:32px;">No book requests found.</td>
+                    </tr>
+                <%
+                Else
+                    Do While Not rsList.EOF
+                        reqStatus = rsList("status")
+                        approvedAt = rsList("approved_at")
+                        hoursRemaining = 48
+                        
+                        If reqStatus = "Approved" And Not IsNull(approvedAt) Then
+                            hoursPassed = DateDiff("h", approvedAt, Now())
+                            hoursRemaining = 48 - hoursPassed
+                            If hoursRemaining < 0 Then hoursRemaining = 0
+                        End If
+                %>
+                    <tr>
+                        <td>
+                            <strong>#<%= rsList("req_id") %></strong>
+                            <div style="font-size:11px; color:var(--text-muted);">Book #<%= rsList("book_id") %></div>
+                        </td>
+                        <td><strong style="color:var(--text-primary);"><%= CleanText(rsList("staff_name") & "") %></strong></td>
+                        <td>
+                            <div><code><%= CleanText(rsList("staff_number") & "") %></code></div>
+                            <span class="badge" style="background:var(--bg-surface-subtle); color:var(--text-secondary); font-size:11px;">Ext: <%= CleanText(rsList("staff_internal_number") & "") %></span>
+                        </td>
+                        <td><strong style="color:var(--brand-primary);"><%= CleanText(rsList("book_name") & "") %></strong></td>
+                        <td><%= CleanText(rsList("author_name") & "") %></td>
+                        <td><strong style="color:var(--success);">&#8377;<%= FormatNumber(SafeFloat(rsList("price"), 0), 2) %></strong></td>
+                        <td>
+                            <div style="font-size:12px; line-height:1.4;">
+                                <div>From: <%= FormatDateTime(rsList("start_date"), 2) %></div>
+                                <div>To: <%= FormatDateTime(rsList("end_date"), 2) %></div>
+                            </div>
+                        </td>
+                        <td>
+                            <% If reqStatus = "Approved" Then %>
+                                <span class="badge badge-success"><span class="badge-dot"></span>Approved</span>
+                                <div style="font-size:11.5px; color:var(--success); font-weight:700; margin-top:4px;">⏱ Collect in <%= hoursRemaining %>h</div>
+                            <% ElseIf reqStatus = "Collected" Then %>
+                                <span class="badge badge-info"><span class="badge-dot"></span>Issued / Collected</span>
+                            <% ElseIf reqStatus = "Expired" Then %>
+                                <span class="badge badge-danger"><span class="badge-dot"></span>Expired (48h)</span>
+                            <% ElseIf reqStatus = "Rejected" Then %>
+                                <span class="badge badge-danger"><span class="badge-dot"></span>Rejected</span>
+                            <% Else %>
+                                <span class="badge badge-warning"><span class="badge-dot"></span>Pending</span>
+                            <% End If %>
+                        </td>
+                        <% If IsStaff() Then %>
+                            <td style="text-align:right;">
+                                <div style="display:inline-flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
+                                    <% If reqStatus = "Pending" Then %>
+                                        <form action="requests.asp" method="POST" style="margin:0;">
+                                            <input type="hidden" name="action_type" value="approve">
+                                            <input type="hidden" name="request_id" value="<%= rsList("req_id") %>">
+                                            <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                                        </form>
+                                        <form action="requests.asp" method="POST" style="margin:0;">
+                                            <input type="hidden" name="action_type" value="reject">
+                                            <input type="hidden" name="request_id" value="<%= rsList("req_id") %>">
+                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Reject this book request?');">Reject</button>
+                                        </form>
+                                    <% ElseIf reqStatus = "Approved" Then %>
+                                        <form action="requests.asp" method="POST" style="margin:0;">
+                                            <input type="hidden" name="action_type" value="collect">
+                                            <input type="hidden" name="request_id" value="<%= rsList("req_id") %>">
+                                            <button type="submit" class="btn btn-primary btn-sm">Mark Collected</button>
+                                        </form>
+                                    <% Else %>
+                                        <span style="color:var(--text-muted); font-size:12px;"><%= reqStatus %></span>
+                                    <% End If %>
+                                </div>
+                            </td>
+                        <% End If %>
+                    </tr>
+                <%
+                        rsList.MoveNext
+                    Loop
+                    rsList.Close
+                End If
 
-            conn.Close
-            Set conn = Nothing
-            %>
-        </tbody>
-    </table>
+                conn.Close
+                Set conn = Nothing
+                %>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <% RenderFooter %>

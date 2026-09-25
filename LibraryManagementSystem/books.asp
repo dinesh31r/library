@@ -22,106 +22,288 @@ sql = sql & "ORDER BY b.id DESC"
 
 On Error Resume Next
 Set rs = conn.Execute(sql)
+
+Dim booksData, hasBooks, totalRecords, r
+hasBooks = False
+totalRecords = -1
+
+If Not (rs Is Nothing Or rs.State = 0) Then
+    If Not rs.EOF Then
+        booksData = rs.GetRows()
+        hasBooks = True
+        totalRecords = UBound(booksData, 2)
+    End If
+    rs.Close
+End If
+Set rs = Nothing
+conn.Close
+Set conn = Nothing
 On Error GoTo 0
 
-RenderHeader "Book Management & Catalog"
+RenderHeader "Book Catalog & Inventory"
 %>
 
-<div class="card">
-    <div class="card-header">
-        <h2 style="margin:0; color:#2c3e50;"><%= IIf(IsStaff(), "Book Catalog & Inventory", "Browse & Request Books") %></h2>
-        <% If IsStaff() Then %>
-            <a href="books_add.asp" class="btn btn-success">+ Add New Book</a>
-        <% End If %>
+<!-- Header & Fast Actions -->
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom: 20px;">
+    <div>
+        <h1 style="font-size:24px; font-weight:800; color:var(--text-primary); letter-spacing:-0.02em; margin-bottom:4px;">
+            <%= IIf(IsStaff(), "Catalog & Inventory", "Library Catalog") %>
+        </h1>
+        <p style="font-size:13.5px; color:var(--text-muted); margin:0;">
+            Browse titles, check live shelf availability, and inspect 3D details.
+        </p>
     </div>
 
-    <!-- Search Form -->
-    <form action="books.asp" method="GET" style="display:flex; gap:10px; margin-bottom: 20px;">
-        <input type="text" name="q" value="<%= CleanText(searchKeyword) %>" placeholder="Search by title, author, or ISBN (e.g. Kannada / English)..." style="flex:1; padding:8px 12px; border:1px solid #ccc; border-radius:4px;">
-        <button type="submit" class="btn btn-primary">Search</button>
-        <% If searchKeyword <> "" Then %>
-            <a href="books.asp" class="btn btn-secondary">Clear</a>
+    <div style="display:flex; gap:10px; align-items:center;">
+        <% If IsStaff() Then %>
+            <a href="books_add.asp" class="btn btn-primary btn-sm">+ Catalog New Book</a>
         <% End If %>
-    </form>
+    </div>
+</div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Title (ಪುಸ್ತಕದ ಹೆಸರು)</th>
-                <th>Author (ಲೇಖಕರು)</th>
-                <th>Category</th>
-                <th>ISBN</th>
-                <th>Price (&#8377;)</th>
-                <th>Rating</th>
-                <th>Status</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            <%
-            If rs Is Nothing Or rs.State = 0 Or rs.EOF Then
-            %>
-                <tr>
-                    <td colspan="9" style="text-align:center; color:#95a5a6;">No books found matching criteria.</td>
-                </tr>
-            <%
-            Else
-                Do While Not rs.EOF
-                    Dim avgR, revCount, starStr
-                    avgR = Round(SafeInt(rs("avg_rating"), 0), 1)
-                    revCount = SafeInt(rs("review_count"), 0)
-                    If avgR > 0 Then
-                        starStr = "⭐ " & avgR & " (" & revCount & ")"
-                    Else
-                        starStr = "<span style='color:#95a5a6; font-size:12px;'>No reviews</span>"
-                    End If
-            %>
-                <tr>
-                    <td>#<%= rs("id") %></td>
-                    <td><strong style="font-size:15px; color:#2c3e50;"><%= CleanText(rs("title") & "") %></strong></td>
-                    <td><%= CleanText(rs("author_name") & "") %></td>
-                    <td><%= CleanText(rs("category_name") & "") %></td>
-                    <td><code><%= CleanText(rs("isbn") & "") %></code></td>
-                    <td><strong style="color:#27ae60;">&#8377;<%= FormatNumber(SafeFloat(rs("price"), 0), 2) %></strong></td>
-                    <td><%= starStr %></td>
-                    <td>
-                        <% If CBool(rs("is_available")) And SafeInt(rs("copies_available"), 0) > 0 Then %>
-                            <span class="badge bg-success">Available (<%= rs("copies_available") %>)</span>
+<!-- Multi-Facet Category Filter Pills Bar -->
+<div class="filter-pills-bar">
+    <button type="button" class="filter-pill active" data-filter="all">
+        All Books <span class="filter-pill-count">(<%= totalRecords + 1 %>)</span>
+    </button>
+    <button type="button" class="filter-pill" data-filter="kannada">
+        ಕನ್ನಡ ಸಾಹಿತ್ಯ (Kannada)
+    </button>
+    <button type="button" class="filter-pill" data-filter="available">
+        In Stock Only
+    </button>
+</div>
+
+<!-- Search & View Mode Switcher -->
+<div class="spotlight-card" style="padding:14px 20px; margin-bottom:24px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+        <div class="search-input-wrap" style="flex:1; max-width:440px;">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display:none;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input type="text" class="search-input" data-live-filter="catalogMainContainer" placeholder="Search..." style="background:transparent; border:none; padding:0; font-size:13px; color:var(--text-primary);">
+        </div>
+
+        <!-- 3 View Mode Switcher -->
+        <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-right:4px;">View:</span>
+            <button type="button" id="btnViewGrid" class="btn btn-primary btn-sm" title="3D Card Grid View">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                Grid
+            </button>
+            <button type="button" id="btnViewTable" class="btn btn-secondary btn-sm" title="Data Table View">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+                Table
+            </button>
+            <button type="button" id="btnViewCompact" class="btn btn-secondary btn-sm" title="Compact High-Density List">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7" /></svg>
+                Compact
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="catalogMainContainer">
+    <!-- VIEW 1: 3D CARD GRID -->
+    <div id="catalogGridView" class="books-grid">
+        <%
+        If Not hasBooks Then
+        %>
+            <div class="spotlight-card" style="grid-column: 1 / -1; text-align:center; padding:48px; color:var(--text-muted);">
+                No books found matching criteria.
+            </div>
+        <%
+        Else
+            For r = 0 To totalRecords
+                Dim bId, bTitle, bIsbn, bPub, bPrice, bCopies, bIsAvail, bAuthor, bCategory, bRating, bRevCount
+                bId = booksData(0, r)
+                bTitle = booksData(1, r)
+                bIsbn = booksData(2, r)
+                bPub = booksData(3, r)
+                bPrice = booksData(4, r)
+                bCopies = SafeInt(booksData(5, r), 0)
+                bIsAvail = CBool(booksData(6, r))
+                bAuthor = booksData(7, r)
+                bCategory = booksData(8, r)
+                bRating = Round(SafeFloat(booksData(9, r), 0), 1)
+                bRevCount = SafeInt(booksData(10, r), 0)
+        %>
+            <div class="book-card-3d spotlight-card"
+                 data-book-trigger
+                 data-book-json='{"id":<%= bId %>,"title":<%= ToJSONString(bTitle) %>,"author":<%= ToJSONString(bAuthor) %>,"category":<%= ToJSONString(bCategory) %>,"isbn":<%= ToJSONString(bIsbn) %>,"publisher":<%= ToJSONString(bPub) %>,"price":"<%= FormatNumber(SafeFloat(bPrice, 0), 2) %>","available_copies":<%= bCopies %>,"can_edit":<%= IIf(IsStaff(), "true", "false") %>}'>
+
+                <!-- 3D Book Cover Stage -->
+                <div class="book-cover-stage">
+                    <div class="book-3d-model">
+                        <div class="book-front-cover">
+                            <span class="book-cover-badge"><%= CleanText(bCategory & "") %></span>
+                            <div class="book-cover-title"><%= CleanText(bTitle & "") %></div>
+                            <div class="book-cover-author"><%= CleanText(bAuthor & "") %></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Body Details -->
+                <div class="book-details-wrap">
+                    <div class="book-meta-title"><%= CleanText(bTitle & "") %></div>
+                    <div class="book-meta-author"><%= CleanText(bAuthor & "") %></div>
+
+                    <div class="book-meta-chips">
+                        <span class="meta-chip"><%= CleanText(bCategory & "") %></span>
+                        <% If bIsAvail And bCopies > 0 Then %>
+                            <span class="badge badge-success"><span class="badge-dot"></span><%= bCopies %> in stock</span>
                         <% Else %>
-                            <span class="badge bg-danger">Out of Stock</span>
+                            <span class="badge badge-danger"><span class="badge-dot"></span>Out of stock</span>
                         <% End If %>
-                    </td>
-                    <td>
-                        <div style="display:flex; gap:5px; flex-wrap:wrap;">
-                            <% If HasPermission("feedback") Then %>
-                                <a href="feedback.asp?book_id=<%= rs("id") %>" class="btn btn-warning" style="padding:4px 8px; font-size:12px;" title="Write Review">⭐ Review</a>
-                            <% End If %>
+                    </div>
 
-                            <% If IsStaff() Then %>
-                                <a href="books_edit.asp?id=<%= rs("id") %>" class="btn btn-primary" style="padding:4px 8px; font-size:12px;">Edit</a>
-                                <a href="books_delete.asp?id=<%= rs("id") %>" class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="return confirm('Delete this book?');">Delete</a>
-                            <% End If %>
-
-                            <% If CBool(rs("is_available")) And SafeInt(rs("copies_available"), 0) > 0 Then %>
-                                <% If HasPermission("requests") Then %>
-                                    <a href="request_book.asp?id=<%= rs("id") %>" class="btn btn-success" style="padding:4px 8px; font-size:12px;">Request Book</a>
-                                <% End If %>
+                    <div class="book-card-bottom">
+                        <strong style="color:var(--success); font-size:15px;">&#8377;<%= FormatNumber(SafeFloat(bPrice, 0), 2) %></strong>
+                        <div style="font-size:12px; color:var(--text-muted);">
+                            <% If bRating > 0 Then %>
+                                <span style="color:#eab308; font-weight:700;">★ <%= bRating %></span> (<%= bRevCount %>)
+                            <% Else %>
+                                No reviews
                             <% End If %>
                         </div>
-                    </td>
-                </tr>
-            <%
-                    rs.MoveNext
-                Loop
-                rs.Close
-            End If
+                    </div>
+                </div>
+            </div>
+        <%
+            Next
+        End If
+        %>
+    </div>
 
-            conn.Close
-            Set conn = Nothing
-            %>
-        </tbody>
-    </table>
+    <!-- VIEW 2: HIGH-DENSITY DATA TABLE -->
+    <div id="catalogTableView" style="display:none;">
+        <div class="table-responsive">
+            <table id="booksTable">
+                <thead>
+                    <tr>
+                        <th class="sortable">ID</th>
+                        <th class="sortable">Book Title</th>
+                        <th class="sortable">Author</th>
+                        <th class="sortable">Category</th>
+                        <th class="sortable">ISBN</th>
+                        <th class="sortable">Price</th>
+                        <th class="sortable">Rating</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <%
+                    If Not hasBooks Then
+                    %>
+                        <tr>
+                            <td colspan="9" style="text-align:center; padding:32px; color:var(--text-muted);">No books found.</td>
+                        </tr>
+                    <%
+                    Else
+                        For r = 0 To totalRecords
+                            bId = booksData(0, r)
+                            bTitle = booksData(1, r)
+                            bIsbn = booksData(2, r)
+                            bPub = booksData(3, r)
+                            bPrice = booksData(4, r)
+                            bCopies = SafeInt(booksData(5, r), 0)
+                            bIsAvail = CBool(booksData(6, r))
+                            bAuthor = booksData(7, r)
+                            bCategory = booksData(8, r)
+                            bRating = Round(SafeFloat(booksData(9, r), 0), 1)
+                            bRevCount = SafeInt(booksData(10, r), 0)
+                    %>
+                        <tr data-book-json='{"id":<%= bId %>,"title":<%= ToJSONString(bTitle) %>,"author":<%= ToJSONString(bAuthor) %>,"category":<%= ToJSONString(bCategory) %>,"isbn":<%= ToJSONString(bIsbn) %>,"publisher":<%= ToJSONString(bPub) %>,"price":"<%= FormatNumber(SafeFloat(bPrice, 0), 2) %>","available_copies":<%= bCopies %>,"can_edit":<%= IIf(IsStaff(), "true", "false") %>}'>
+                            <td><strong>#<%= bId %></strong></td>
+                            <td style="cursor:pointer;" data-book-trigger>
+                                <strong style="color:var(--text-primary); font-size:14px;"><%= CleanText(bTitle & "") %></strong>
+                                <% If bPub <> "" Then %>
+                                    <div style="font-size:11.5px; color:var(--text-muted);"><%= CleanText(bPub & "") %></div>
+                                <% End If %>
+                            </td>
+                            <td><%= CleanText(bAuthor & "") %></td>
+                            <td><span class="meta-chip"><%= CleanText(bCategory & "") %></span></td>
+                            <td><code><%= CleanText(bIsbn & "") %></code></td>
+                            <td><strong style="color:var(--success);">&#8377;<%= FormatNumber(SafeFloat(bPrice, 0), 2) %></strong></td>
+                            <td>
+                                <% If bRating > 0 Then %>
+                                    <span style="color:#eab308; font-weight:700;">★ <%= bRating %></span>
+                                <% Else %>
+                                    <span style="color:var(--text-muted); font-size:11px;">—</span>
+                                <% End If %>
+                            </td>
+                            <td>
+                                <% If bIsAvail And bCopies > 0 Then %>
+                                    <span class="badge badge-success"><span class="badge-dot"></span><%= bCopies %> Avail</span>
+                                <% Else %>
+                                    <span class="badge badge-danger"><span class="badge-dot"></span>Out</span>
+                                <% End If %>
+                            </td>
+                            <td style="text-align:right;">
+                                <div style="display:inline-flex; gap:6px;">
+                                    <button type="button" class="btn btn-secondary btn-sm" data-book-trigger>Inspect</button>
+                                    <% If bIsAvail And bCopies > 0 And HasPermission("requests") Then %>
+                                        <a href="request_book.asp?id=<%= bId %>" class="btn btn-primary btn-sm">Reserve</a>
+                                    <% End If %>
+                                </div>
+                            </td>
+                        </tr>
+                    <%
+                        Next
+                    End If
+                    %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- VIEW 3: COMPACT HIGH-DENSITY LIST -->
+    <div id="catalogCompactView" class="books-compact-list" style="display:none;">
+        <%
+        If hasBooks Then
+            For r = 0 To totalRecords
+                bId = booksData(0, r)
+                bTitle = booksData(1, r)
+                bIsbn = booksData(2, r)
+                bPub = booksData(3, r)
+                bPrice = booksData(4, r)
+                bCopies = SafeInt(booksData(5, r), 0)
+                bIsAvail = CBool(booksData(6, r))
+                bAuthor = booksData(7, r)
+                bCategory = booksData(8, r)
+        %>
+            <div class="compact-book-row"
+                 data-book-trigger
+                 data-book-json='{"id":<%= bId %>,"title":<%= ToJSONString(bTitle) %>,"author":<%= ToJSONString(bAuthor) %>,"category":<%= ToJSONString(bCategory) %>,"isbn":<%= ToJSONString(bIsbn) %>,"publisher":<%= ToJSONString(bPub) %>,"price":"<%= FormatNumber(SafeFloat(bPrice, 0), 2) %>","available_copies":<%= bCopies %>,"can_edit":<%= IIf(IsStaff(), "true", "false") %>}'>
+                <div class="compact-col-title">
+                    <strong style="color:var(--text-primary); font-size:14px;"><%= CleanText(bTitle & "") %></strong>
+                </div>
+                <div class="compact-col-author">
+                    <%= CleanText(bAuthor & "") %>
+                </div>
+                <div class="compact-col-category">
+                    <span class="meta-chip"><%= CleanText(bCategory & "") %></span>
+                </div>
+                <div class="compact-col-stock">
+                    <% If bIsAvail And bCopies > 0 Then %>
+                        <span class="badge badge-success"><%= bCopies %> in stock</span>
+                    <% Else %>
+                        <span class="badge badge-danger">Out</span>
+                    <% End If %>
+                </div>
+                <div class="compact-col-actions" onclick="event.stopPropagation();">
+                    <% If bIsAvail And bCopies > 0 And HasPermission("requests") Then %>
+                        <a href="request_book.asp?id=<%= bId %>" class="btn btn-primary btn-sm">Reserve</a>
+                    <% End If %>
+                    <button type="button" class="btn btn-secondary btn-sm" data-book-trigger>Inspect &rarr;</button>
+                </div>
+            </div>
+        <%
+            Next
+        End If
+        %>
+    </div>
 </div>
 
 <% RenderFooter %>

@@ -52,90 +52,96 @@ If Request.ServerVariables("REQUEST_METHOD") = "POST" Then
     End If
 End If
 
-' Fetch Authors and Categories for Select Lists
+' Fetch Authors and Categories for Select Lists (Active only)
 Dim rsAuthors, rsCategories
-Set rsAuthors = conn.Execute("SELECT id, name FROM Authors ORDER BY name ASC")
-Set rsCategories = conn.Execute("SELECT id, name FROM Categories ORDER BY name ASC")
+Set rsAuthors = conn.Execute("SELECT id, name FROM Authors WHERE is_active = 1 ORDER BY name ASC")
+Set rsCategories = conn.Execute("SELECT id, name FROM Categories WHERE is_active = 1 ORDER BY name ASC")
 
 RenderHeader "Add New Book"
 %>
 
-<div class="card" style="max-width: 650px; margin: 0 auto;">
-    <div class="card-header">
-        <h2 style="margin:0; color:#2c3e50;">Add New Book</h2>
-        <a href="books.asp" class="btn btn-secondary">Back to Books</a>
+<div style="max-width: 680px; margin: 20px auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom: 20px;">
+        <div>
+            <h1 style="font-size:22px; font-weight:800; color:var(--text-primary); margin-bottom:4px;">Add New Book</h1>
+            <p style="font-size:13px; color:var(--text-muted); margin:0;">Register a new publication to the library inventory</p>
+        </div>
+        <a href="books.asp" class="btn btn-secondary btn-sm">&larr; Back to Catalog</a>
     </div>
 
     <% If errorMessage <> "" Then %>
         <div class="alert alert-danger"><%= CleanText(errorMessage) %></div>
     <% End If %>
 
-    <form action="books_add.asp" method="POST">
-        <div class="form-group">
-            <label for="title">Book Title *</label>
-            <input type="text" id="title" name="title" required placeholder="e.g. ಕಾನೂರು ಹೆಗ್ಗಡಿತಿ (Kanooru Heggadithi) or Masterlink Systems">
-        </div>
-
-        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:15px;">
+    <div class="card">
+        <form action="books_add.asp" method="POST">
             <div class="form-group">
-                <label for="isbn">ISBN Code *</label>
-                <input type="text" id="isbn" name="isbn" required placeholder="e.g. 978-0123456789">
-            </div>
-            <div class="form-group">
-                <label for="publisher">Publisher</label>
-                <input type="text" id="publisher" name="publisher" placeholder="e.g. Sapna / BEL">
-            </div>
-            <div class="form-group">
-                <label for="price">Price of Book (&#8377;)</label>
-                <input type="number" step="0.01" id="price" name="price" value="350.00" required placeholder="e.g. 450.00">
-            </div>
-        </div>
-
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
-            <div class="form-group">
-                <label for="author_id">Author</label>
-                <select id="author_id" name="author_id">
-                    <option value="0">-- Select Author --</option>
-                    <%
-                    If Not rsAuthors Is Nothing And rsAuthors.State = 1 Then
-                        Do While Not rsAuthors.EOF
-                    %>
-                        <option value="<%= rsAuthors("id") %>"><%= CleanText(rsAuthors("name") & "") %></option>
-                    <%
-                            rsAuthors.MoveNext
-                        Loop
-                    End If
-                    %>
-                </select>
+                <label for="title">Book Title *</label>
+                <input type="text" id="title" name="title" class="form-control" required placeholder="e.g. ಕಾನೂರು ಹೆಗ್ಗಡಿತಿ (Kanooru Heggadithi) or Radar Systems Engineering">
             </div>
 
-            <div class="form-group">
-                <label for="category_id">Category</label>
-                <select id="category_id" name="category_id">
-                    <option value="0">-- Select Category --</option>
-                    <%
-                    If Not rsCategories Is Nothing And rsCategories.State = 1 Then
-                        Do While Not rsCategories.EOF
-                    %>
-                        <option value="<%= rsCategories("id") %>"><%= CleanText(rsCategories("name") & "") %></option>
-                    <%
-                            rsCategories.MoveNext
-                        Loop
-                    End If
-                    %>
-                </select>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px;">
+                <div class="form-group">
+                    <label for="isbn">ISBN Code *</label>
+                    <input type="text" id="isbn" name="isbn" class="form-control" required placeholder="e.g. 978-0123456789">
+                </div>
+                <div class="form-group">
+                    <label for="publisher">Publisher</label>
+                    <input type="text" id="publisher" name="publisher" class="form-control" placeholder="e.g. Sapna / BEL Press">
+                </div>
+                <div class="form-group">
+                    <label for="price">Price (&#8377;)</label>
+                    <input type="number" step="0.01" id="price" name="price" class="form-control" value="350.00" required>
+                </div>
             </div>
-        </div>
 
-        <div class="form-group">
-            <label for="copies">Copies Available</label>
-            <input type="number" id="copies" name="copies" value="1" min="0" required>
-        </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                <div class="form-group">
+                    <label for="author_id">Author</label>
+                    <select id="author_id" name="author_id" class="form-control">
+                        <option value="0">-- Select Author --</option>
+                        <%
+                        If Not rsAuthors Is Nothing And rsAuthors.State = 1 Then
+                            Do While Not rsAuthors.EOF
+                        %>
+                            <option value="<%= rsAuthors("id") %>"><%= CleanText(rsAuthors("name") & "") %></option>
+                        <%
+                                rsAuthors.MoveNext
+                            Loop
+                        End If
+                        %>
+                    </select>
+                </div>
 
-        <div style="margin-top:20px; text-align:right;">
-            <button type="submit" class="btn btn-success" style="padding:10px 20px;">Save Book</button>
-        </div>
-    </form>
+                <div class="form-group">
+                    <label for="category_id">Category</label>
+                    <select id="category_id" name="category_id" class="form-control">
+                        <option value="0">-- Select Category --</option>
+                        <%
+                        If Not rsCategories Is Nothing And rsCategories.State = 1 Then
+                            Do While Not rsCategories.EOF
+                        %>
+                            <option value="<%= rsCategories("id") %>"><%= CleanText(rsCategories("name") & "") %></option>
+                        <%
+                                rsCategories.MoveNext
+                            Loop
+                        End If
+                        %>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="copies">Initial Copies Available</label>
+                <input type="number" id="copies" name="copies" class="form-control" value="1" min="0" required>
+            </div>
+
+            <div style="margin-top:24px; display:flex; justify-content:flex-end; gap:10px;">
+                <a href="books.asp" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">Save Publication</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <%

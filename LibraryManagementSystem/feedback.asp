@@ -90,33 +90,45 @@ Set rsFeedbacks = conn.Execute("SELECT f.id, f.feedback_type, f.rating, f.commen
 RenderHeader "Feedback & Reviews"
 %>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+<!-- Header -->
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom: 22px;">
+    <div>
+        <h1 style="font-size:22px; font-weight:800; color:var(--text-primary); margin-bottom:4px;">Community Feedback &amp; Book Reviews</h1>
+        <p style="font-size:13px; color:var(--text-muted); margin:0;">Share your thoughts on the portal or publish reviews on library literature</p>
+    </div>
+</div>
+
+<% If errorMessage <> "" Then %>
+    <div class="alert alert-danger"><%= CleanText(errorMessage) %></div>
+<% End If %>
+
+<% If successMessage <> "" Then %>
+    <div class="alert alert-info"><%= CleanText(successMessage) %></div>
+<% End If %>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
     <!-- Left Column: Submit Review / Feedback Form -->
-    <div class="card" style="margin-bottom:0;">
-        <h2 style="margin-top:0; color:#2c3e50;">✍️ Submit Feedback or Book Review</h2>
-        <p style="color:#7f8c8d; font-size:14px;">Share your thoughts about our website or review a book (Strict Limit: <strong>150 words maximum</strong>).</p>
-
-        <% If errorMessage <> "" Then %>
-            <div class="alert alert-danger"><%= CleanText(errorMessage) %></div>
-        <% End If %>
-
-        <% If successMessage <> "" Then %>
-            <div class="alert alert-info"><%= CleanText(successMessage) %></div>
-        <% End If %>
+    <div class="card" style="align-self:start;">
+        <div class="card-header">
+            <h2 class="card-title">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                Post Review or Feedback
+            </h2>
+        </div>
 
         <form action="feedback.asp" method="POST" id="feedbackForm" onsubmit="return validateWordCount();">
             <div class="form-group">
-                <label for="feedback_type">Feedback Category</label>
-                <select id="feedback_type" name="feedback_type" onchange="toggleBookDropdown();">
-                    <option value="website" <%= IIf(selectedBookId = 0, "selected", "") %>>🌐 General Website Feedback</option>
-                    <option value="book" <%= IIf(selectedBookId > 0, "selected", "") %>>📚 Book Review</option>
+                <label for="feedback_type">Feedback Scope</label>
+                <select id="feedback_type" name="feedback_type" class="form-control" onchange="toggleBookDropdown();">
+                    <option value="website" <%= IIf(selectedBookId = 0, "selected", "") %>>General System Feedback</option>
+                    <option value="book" <%= IIf(selectedBookId > 0, "selected", "") %>>Book Review</option>
                 </select>
             </div>
 
             <div class="form-group" id="bookSelectGroup" style="<%= IIf(selectedBookId > 0, "", "display:none;") %>">
-                <label for="book_id">Select Book</label>
-                <select id="book_id" name="book_id">
-                    <option value="0">-- Select a Book --</option>
+                <label for="book_id">Select Catalog Book</label>
+                <select id="book_id" name="book_id" class="form-control">
+                    <option value="0">-- Select Book from Catalog --</option>
                     <%
                     If Not (rsBooks Is Nothing Or rsBooks.State = 0) Then
                         Do While Not rsBooks.EOF
@@ -134,59 +146,68 @@ RenderHeader "Feedback & Reviews"
             </div>
 
             <div class="form-group">
-                <label for="rating">Rating (1 to 5 Stars)</label>
-                <select id="rating" name="rating">
-                    <option value="5" selected>⭐⭐⭐⭐⭐ (5 - Excellent)</option>
-                    <option value="4">⭐⭐⭐⭐ (4 - Very Good)</option>
-                    <option value="3">⭐⭐⭐ (3 - Good)</option>
-                    <option value="2">⭐⭐ (2 - Fair)</option>
-                    <option value="1">⭐ (1 - Poor)</option>
+                <label for="rating">Rating Score</label>
+                <select id="rating" name="rating" class="form-control">
+                    <option value="5" selected>★★★★★ (5 Stars - Excellent)</option>
+                    <option value="4">★★★★☆ (4 Stars - Very Good)</option>
+                    <option value="3">★★★☆☆ (3 Stars - Good)</option>
+                    <option value="2">★★☆☆☆ (2 Stars - Fair)</option>
+                    <option value="1">★☆☆☆☆ (1 Star - Needs Improvement)</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                    <label for="comment" style="margin:0;">Comments & Review</label>
-                    <span id="wordCounter" style="font-size:12px; font-weight:bold; color:#7f8c8d;">Words: 0 / 150</span>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <label for="comment" style="margin:0;">Comments &amp; Review (Max 150 Words) *</label>
+                    <span id="wordCounter" style="font-size:12px; font-weight:700; color:var(--text-muted);">0 / 150 words</span>
                 </div>
-                <textarea id="comment" name="comment" rows="6" placeholder="Write your feedback or book review here (maximum 150 words)..." oninput="updateWordCount();" required></textarea>
-                <div id="wordWarning" style="color:#e74c3c; font-size:12px; margin-top:4px; display:none;">⚠️ Warning: You have exceeded the 150-word limit! Please reduce text.</div>
+                <textarea id="comment" name="comment" class="form-control" rows="5" placeholder="Share your experience or honest book critique..." oninput="updateWordCount();" required></textarea>
+                <div id="wordWarning" style="color:var(--danger); font-size:12px; margin-top:6px; display:none; font-weight:600;">
+                    ⚠️ Word limit exceeded! Please shorten your review to 150 words or fewer.
+                </div>
             </div>
 
-            <button type="submit" id="submitBtn" class="btn btn-primary" style="width:100%; padding:10px;">Submit Feedback</button>
+            <button type="submit" id="submitBtn" class="btn btn-primary" style="width:100%; padding:11px;">
+                Submit Review
+            </button>
         </form>
     </div>
 
-    <!-- Right Column: Recent Feedbacks & Book Reviews Stream -->
-    <div class="card" style="margin-bottom:0;">
-        <h2 style="margin-top:0; color:#2c3e50;">💬 Community Reviews & Feedback</h2>
-        
-        <div style="max-height: 520px; overflow-y: auto; padding-right: 5px;">
+    <!-- Right Column: Recent Feedbacks Stream -->
+    <div class="card" style="padding:0; overflow:hidden;">
+        <div style="padding:18px 22px; border-bottom:1px solid var(--border-subtle);">
+            <h2 class="card-title" style="margin:0;">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                Community Reviews Stream
+            </h2>
+        </div>
+
+        <div style="max-height: 520px; overflow-y: auto; padding: 18px 22px;">
             <%
             If rsFeedbacks Is Nothing Or rsFeedbacks.State = 0 Or rsFeedbacks.EOF Then
             %>
-                <p style="text-align:center; color:#95a5a6; margin-top:40px;">No feedback or reviews submitted yet.</p>
+                <p style="text-align:center; color:var(--text-muted); padding:32px 0;">No reviews submitted yet.</p>
             <%
             Else
                 Do While Not rsFeedbacks.EOF
                     Dim stars, rVal
                     rVal = SafeInt(rsFeedbacks("rating"), 5)
-                    stars = String(rVal, "⭐")
+                    stars = String(rVal, "★")
             %>
-                <div style="border-bottom:1px solid #eee; padding-bottom:15px; margin-bottom:15px;">
+                <div style="border-bottom:1px solid var(--border-subtle); padding-bottom:16px; margin-bottom:16px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <strong><%= CleanText(rsFeedbacks("username") & "") %></strong>
-                        <span style="font-size:12px; color:#f39c12;"><%= stars %></span>
+                        <strong style="color:var(--text-primary);"><%= CleanText(rsFeedbacks("username") & "") %></strong>
+                        <span style="font-size:13px; color:#eab308; font-weight:700;"><%= stars %></span>
                     </div>
-                    <div style="margin:4px 0;">
+                    <div style="display:flex; gap:8px; align-items:center; margin:4px 0 8px 0;">
                         <% If rsFeedbacks("feedback_type") = "book" And Not IsNull(rsFeedbacks("book_title")) Then %>
-                            <span class="badge bg-success" style="font-size:11px;">Book Review: <%= CleanText(rsFeedbacks("book_title") & "") %></span>
+                            <span class="badge badge-success" style="font-size:11px;">Book Review: <%= CleanText(rsFeedbacks("book_title") & "") %></span>
                         <% Else %>
-                            <span class="badge bg-warning" style="font-size:11px;">Website Feedback</span>
+                            <span class="badge badge-warning" style="font-size:11px;">System Feedback</span>
                         <% End If %>
-                        <span style="font-size:11px; color:#95a5a6; margin-left:8px;"><%= FormatDateTime(rsFeedbacks("created_at"), 2) %></span>
+                        <span style="font-size:11px; color:var(--text-muted);"><%= FormatDateTime(rsFeedbacks("created_at"), 2) %></span>
                     </div>
-                    <p style="margin:8px 0 0 0; color:#444; font-size:14px; line-height:1.4;">
+                    <p style="margin:0; color:var(--text-secondary); font-size:13.5px; line-height:1.5;">
                         <%= CleanText(rsFeedbacks("comment") & "") %>
                     </p>
                 </div>
@@ -227,18 +248,16 @@ function updateWordCount() {
     var submitBtn = document.getElementById('submitBtn');
     
     var count = getWordCount(textarea.value);
-    counter.innerText = 'Words: ' + count + ' / 150';
+    counter.innerText = count + ' / 150 words';
     
     if (count > 150) {
-        counter.style.color = '#e74c3c';
+        counter.style.color = 'var(--danger)';
         warning.style.display = 'block';
         submitBtn.disabled = true;
-        submitBtn.style.opacity = '0.6';
     } else {
-        counter.style.color = '#7f8c8d';
+        counter.style.color = 'var(--text-muted)';
         warning.style.display = 'none';
         submitBtn.disabled = false;
-        submitBtn.style.opacity = '1';
     }
 }
 
@@ -246,7 +265,11 @@ function validateWordCount() {
     var textarea = document.getElementById('comment');
     var count = getWordCount(textarea.value);
     if (count > 150) {
-        alert('Your review exceeds the maximum limit of 150 words. Please shorten your text before submitting.');
+        if (window.Toast) {
+            window.Toast.show('Your review exceeds 150 words. Please shorten before submitting.', 'error');
+        } else {
+            alert('Your review exceeds 150 words.');
+        }
         return false;
     }
     return true;

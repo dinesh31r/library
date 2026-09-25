@@ -96,80 +96,87 @@ defaultEnd = Year(DateAdd("d", 15, Now)) & "-" & Right("0" & Month(DateAdd("d", 
 RenderHeader "Request Book"
 %>
 
-<div class="card" style="max-width: 650px; margin: 20px auto;">
-    <div class="card-header">
-        <h2 style="margin:0; color:#2c3e50;">Request a Book (Staff Portal)</h2>
-        <a href="books.asp" class="btn btn-secondary">Back to Catalog</a>
+<div style="max-width: 680px; margin: 20px auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom: 20px;">
+        <div>
+            <h1 style="font-size:22px; font-weight:800; color:var(--text-primary); margin-bottom:4px;">Request a Book</h1>
+            <p style="font-size:13px; color:var(--text-muted); margin:0;">Submit a borrowing reservation for library staff approval</p>
+        </div>
+        <a href="books.asp" class="btn btn-secondary btn-sm">&larr; Back to Catalog</a>
     </div>
 
     <% If errorMessage <> "" Then %>
         <div class="alert alert-danger"><%= CleanText(errorMessage) %></div>
     <% End If %>
 
-    <form action="request_book.asp" method="POST">
-        <!-- 1. Staff Metadata Fields -->
-        <div style="background:#eef2f7; padding:15px; border-radius:6px; margin-bottom:15px;">
-            <h4 style="margin-top:0; margin-bottom:10px; color:#34495e;">Staff Details</h4>
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
-                <div class="form-group" style="margin-bottom:0;">
-                    <label for="staff_name" style="font-size:12px;">Staff Name *</label>
-                    <input type="text" id="staff_name" name="staff_name" value="<%= CleanText(currentStaffName) %>" required style="padding:6px 10px;">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label for="staff_number" style="font-size:12px;">Staff Number (Phone) *</label>
-                    <input type="text" id="staff_number" name="staff_number" value="<%= CleanText(currentStaffNumber) %>" required style="padding:6px 10px;">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label for="staff_internal_number" style="font-size:12px;">Staff Internal Ext No. *</label>
-                    <input type="text" id="staff_internal_number" name="staff_internal_number" value="<%= CleanText(currentStaffInternalNum) %>" required style="padding:6px 10px;">
+    <div class="card">
+        <form action="request_book.asp" method="POST">
+            <!-- 1. Staff Metadata Fields -->
+            <div style="background:var(--bg-surface-subtle); padding:18px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); margin-bottom:20px;">
+                <h3 style="font-size:13.5px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:12px;">Staff Verification Info</h3>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap:12px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label for="staff_name" style="font-size:12px;">Staff Name *</label>
+                        <input type="text" id="staff_name" name="staff_name" class="form-control" value="<%= CleanText(currentStaffName) %>" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label for="staff_number" style="font-size:12px;">Mobile / Phone *</label>
+                        <input type="text" id="staff_number" name="staff_number" class="form-control" value="<%= CleanText(currentStaffNumber) %>" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label for="staff_internal_number" style="font-size:12px;">Internal Ext No. *</label>
+                        <input type="text" id="staff_internal_number" name="staff_internal_number" class="form-control" value="<%= CleanText(currentStaffInternalNum) %>" required>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- 2. Book Selection -->
-        <div class="form-group">
-            <label for="book_id">Select Book *</label>
-            <select id="book_id" name="book_id" required style="font-size:14px; padding:8px 12px;">
-                <option value="">-- Choose Book --</option>
-                <%
-                If Not rsAllBooks Is Nothing And rsAllBooks.State = 1 Then
-                    Do While Not rsAllBooks.EOF
-                        Dim selectedAttr
-                        If CStr(rsAllBooks("id")) = CStr(bookId) Then selectedAttr = "selected" Else selectedAttr = ""
-                %>
-                    <option value="<%= rsAllBooks("id") %>" <%= selectedAttr %>>
-                        [ID: <%= rsAllBooks("id") %>] <%= CleanText(rsAllBooks("title") & "") %> — by <%= CleanText(rsAllBooks("author_name") & "") %> (&#8377;<%= FormatNumber(SafeFloat(rsAllBooks("price"), 0), 2) %>)
-                    </option>
-                <%
-                        rsAllBooks.MoveNext
-                    Loop
-                End If
-                %>
-            </select>
-        </div>
-
-        <!-- 3. Borrowing Dates -->
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+            <!-- 2. Book Selection -->
             <div class="form-group">
-                <label for="start_date">Start Date (Borrow Date) *</label>
-                <input type="date" id="start_date" name="start_date" value="<%= defaultStart %>" required style="padding:8px 12px;">
+                <label for="book_id">Select Book *</label>
+                <select id="book_id" name="book_id" class="form-control" required>
+                    <option value="">-- Choose Book from Catalog --</option>
+                    <%
+                    If Not rsAllBooks Is Nothing And rsAllBooks.State = 1 Then
+                        Do While Not rsAllBooks.EOF
+                            Dim selectedAttr
+                            If CStr(rsAllBooks("id")) = CStr(bookId) Then selectedAttr = "selected" Else selectedAttr = ""
+                    %>
+                        <option value="<%= rsAllBooks("id") %>" <%= selectedAttr %>>
+                            #<%= rsAllBooks("id") %>: <%= CleanText(rsAllBooks("title") & "") %> — <%= CleanText(rsAllBooks("author_name") & "") %> (&#8377;<%= FormatNumber(SafeFloat(rsAllBooks("price"), 0), 2) %>)
+                        </option>
+                    <%
+                            rsAllBooks.MoveNext
+                        Loop
+                    End If
+                    %>
+                </select>
             </div>
 
-            <div class="form-group">
-                <label for="end_date">Return Due Date (15 Days) *</label>
-                <input type="date" id="end_date" name="end_date" value="<%= defaultEnd %>" required style="padding:8px 12px;">
+            <!-- 3. Borrowing Dates -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                <div class="form-group">
+                    <label for="start_date">Start Date (Borrow Date) *</label>
+                    <input type="date" id="start_date" name="start_date" class="form-control" value="<%= defaultStart %>" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="end_date">Return Due Date (15 Days) *</label>
+                    <input type="date" id="end_date" name="end_date" class="form-control" value="<%= defaultEnd %>" required>
+                </div>
             </div>
-        </div>
 
-        <div style="background:#fff3cd; color:#856404; padding:12px; border-radius:6px; margin-bottom:20px; font-size:13px; border:1px solid #ffeeba;">
-            💡 <strong>Borrowing Rules:</strong><br>
-            • Standard duration is <strong>15 days</strong>.<br>
-            • On day 16, borrowings automatically trigger <strong><span style="color:#d9534f; font-weight:bold;">OVERDUE</span></strong> status.<br>
-            • Approved requests expire after <strong>48 hours</strong> if uncollected.
-        </div>
+            <div style="background:var(--warning-bg); border:1px solid var(--warning-border); padding:14px 16px; border-radius:var(--radius-md); margin-bottom:20px; font-size:12.5px; color:var(--text-secondary); line-height:1.6;">
+                <strong style="color:var(--warning);">📌 Important Reservation Guidelines:</strong><br>
+                • Standard borrowing duration is <strong>15 days</strong>.<br>
+                • Books not returned by day 16 automatically enter <strong><span style="color:var(--danger); font-weight:700;">OVERDUE</span></strong> status.<br>
+                • Once approved, you must collect the book within <strong>48 hours</strong> or it returns to catalog stock.
+            </div>
 
-        <button type="submit" class="btn btn-primary" style="width:100%; padding:12px; font-size:16px;">Submit Book Request</button>
-    </form>
+            <button type="submit" class="btn btn-primary" style="width:100%; padding:12px; font-size:15px;">
+                Submit Reservation Request
+            </button>
+        </form>
+    </div>
 </div>
 
 <%

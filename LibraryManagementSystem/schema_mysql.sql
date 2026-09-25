@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS Users (
     role VARCHAR(50) DEFAULT 'Staff',
     staff_number VARCHAR(50) DEFAULT '9876543210',
     staff_internal_number VARCHAR(50) DEFAULT 'BEL-EXT-101',
+    dob VARCHAR(20) DEFAULT '01-01-1990',
     perm_books TINYINT(1) DEFAULT 1,
     perm_requests TINYINT(1) DEFAULT 1,
     perm_borrowings TINYINT(1) DEFAULT 1,
@@ -29,6 +30,7 @@ CREATE TABLE IF NOT EXISTS Authors (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
     bio TEXT,
+    is_active TINYINT(1) DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -37,6 +39,7 @@ CREATE TABLE IF NOT EXISTS Categories (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     description TEXT,
+    is_active TINYINT(1) DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -107,12 +110,12 @@ CREATE TABLE IF NOT EXISTS Feedbacks (
 -- ====================================================================
 
 -- Seed Users with Default Permissions
-INSERT INTO Users (username, email, password_hash, role, staff_number, staff_internal_number, perm_books, perm_requests, perm_borrowings, perm_authors, perm_categories, perm_feedback) VALUES
-('Admin User', 'admin@bel.com', 'Password123!', 'Admin', '9876543210', 'BEL-ADM-001', 1, 1, 1, 1, 1, 1),
-('Librarian Sarah', 'librarian@bel.com', 'Password123!', 'Librarian', '9876543211', 'BEL-LIB-002', 1, 1, 1, 1, 1, 1),
-('John Doe', 'john.doe@bel.com', 'Password123!', 'Staff', '9876543212', 'BEL-EXT-101', 1, 1, 1, 0, 0, 1),
-('Jane Smith', 'jane.smith@bel.com', 'Password123!', 'Staff', '9876543213', 'BEL-EXT-102', 1, 1, 1, 0, 0, 1)
-ON DUPLICATE KEY UPDATE username=VALUES(username), role=VALUES(role);
+INSERT INTO Users (username, email, password_hash, role, staff_number, staff_internal_number, dob, perm_books, perm_requests, perm_borrowings, perm_authors, perm_categories, perm_feedback) VALUES
+('Admin User', 'admin@bel.com', 'Password123!', 'Admin', '9876543210', 'BEL-ADM-001', '15-08-1985', 1, 1, 1, 1, 1, 1),
+('Librarian Sarah', 'librarian@bel.com', 'Password123!', 'Librarian', '9876543211', 'BEL-LIB-002', '20-05-1992', 1, 1, 1, 1, 1, 1),
+('John Doe', 'john.doe@bel.com', 'Password123!', 'Staff', '9876543212', 'BEL-EXT-101', '10-10-1995', 1, 1, 1, 0, 0, 1),
+('Jane Smith', 'jane.smith@bel.com', 'Password123!', 'Staff', '9876543213', 'BEL-EXT-102', '12-12-1996', 1, 1, 1, 0, 0, 1)
+ON DUPLICATE KEY UPDATE username=VALUES(username), role=VALUES(role), dob=VALUES(dob), staff_number=VALUES(staff_number);
 
 -- Seed English & Kannada Authors
 INSERT INTO Authors (name, bio) VALUES
